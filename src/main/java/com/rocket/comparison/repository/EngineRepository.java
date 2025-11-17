@@ -1,6 +1,6 @@
-package com.rocket.comparision.repository;
+package com.rocket.comparison.repository;
 
-import com.rocket.comparision.entity.Engine;
+import com.rocket.comparison.entity.Engine;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

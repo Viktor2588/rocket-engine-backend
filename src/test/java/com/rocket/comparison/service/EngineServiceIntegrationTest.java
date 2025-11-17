@@ -1,7 +1,7 @@
-package com.rocket.comparision.service;
+package com.rocket.comparison.service;
 
-import com.rocket.comparision.entity.Engine;
-import com.rocket.comparision.repository.EngineRepository;
+import com.rocket.comparison.entity.Engine;
+import com.rocket.comparison.repository.EngineRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,29 +39,32 @@ public class EngineServiceIntegrationTest {
         // Create test engines
         testEngine = new Engine();
         testEngine.setName("Merlin 1D");
-        testEngine.setManufacturer("SpaceX");
-        testEngine.setThrust(934.0);
-        testEngine.setIsp(282.0);
-        testEngine.setPropellantType("RP-1/LOX");
-        testEngine.setMass(470.0);
+        testEngine.setDesigner("SpaceX");
+        testEngine.setOrigin("USA");
+        testEngine.setThrustN(934000L);
+        testEngine.setIsp_s(282.0);
+        testEngine.setPropellant("RP-1/LOX");
+        testEngine.setMassKg(470.0);
         testEngine.setDescription("The Merlin 1D is used on Falcon 9");
 
         spacexEngine = new Engine();
         spacexEngine.setName("Raptor 2");
-        spacexEngine.setManufacturer("SpaceX");
-        spacexEngine.setThrust(2050.0);
-        spacexEngine.setIsp(380.0);
-        spacexEngine.setPropellantType("Methane/LOX");
-        spacexEngine.setMass(1400.0);
+        spacexEngine.setDesigner("SpaceX");
+        spacexEngine.setOrigin("USA");
+        spacexEngine.setThrustN(2050000L);
+        spacexEngine.setIsp_s(380.0);
+        spacexEngine.setPropellant("Methane/LOX");
+        spacexEngine.setMassKg(1400.0);
         spacexEngine.setDescription("Full-flow staged combustion engine");
 
         blueOriginEngine = new Engine();
         blueOriginEngine.setName("BE-4");
-        blueOriginEngine.setManufacturer("Blue Origin");
-        blueOriginEngine.setThrust(2450.0);
-        blueOriginEngine.setIsp(380.0);
-        blueOriginEngine.setPropellantType("NG/LOX");
-        blueOriginEngine.setMass(1300.0);
+        blueOriginEngine.setDesigner("Blue Origin");
+        blueOriginEngine.setOrigin("USA");
+        blueOriginEngine.setThrustN(2450000L);
+        blueOriginEngine.setIsp_s(380.0);
+        blueOriginEngine.setPropellant("NG/LOX");
+        blueOriginEngine.setMassKg(1300.0);
         blueOriginEngine.setDescription("Used on Atlas V and Vulcan rockets");
 
         engineRepository.save(testEngine);
@@ -74,11 +77,12 @@ public class EngineServiceIntegrationTest {
     public void testSaveEngine_Success() {
         Engine newEngine = new Engine();
         newEngine.setName("RS-25");
-        newEngine.setManufacturer("Aerojet Rocketdyne");
-        newEngine.setThrust(1860.0);
-        newEngine.setIsp(452.0);
-        newEngine.setPropellantType("Hydrogen/LOX");
-        newEngine.setMass(3600.0);
+        newEngine.setDesigner("Aerojet Rocketdyne");
+        newEngine.setOrigin("USA");
+        newEngine.setThrustN(1860000L);
+        newEngine.setIsp_s(452.0);
+        newEngine.setPropellant("Hydrogen/LOX");
+        newEngine.setMassKg(3600.0);
         newEngine.setDescription("Used on Space Launch System");
 
         Engine savedEngine = engineService.saveEngine(newEngine);
@@ -92,11 +96,12 @@ public class EngineServiceIntegrationTest {
     public void testSaveEngine_PersistedCorrectly() {
         Engine newEngine = new Engine();
         newEngine.setName("Test Engine");
-        newEngine.setManufacturer("Test Manufacturer");
-        newEngine.setThrust(1000.0);
-        newEngine.setIsp(300.0);
-        newEngine.setPropellantType("LOX/H2");
-        newEngine.setMass(500.0);
+        newEngine.setDesigner("Test Manufacturer");
+        newEngine.setOrigin("USA");
+        newEngine.setThrustN(1000000L);
+        newEngine.setIsp_s(300.0);
+        newEngine.setPropellant("LOX/H2");
+        newEngine.setMassKg(500.0);
         newEngine.setDescription("Test description");
 
         Engine saved = engineService.saveEngine(newEngine);
@@ -104,7 +109,7 @@ public class EngineServiceIntegrationTest {
 
         assertTrue(retrieved.isPresent());
         assertEquals("Test Engine", retrieved.get().getName());
-        assertEquals(1000.0, retrieved.get().getThrust());
+        assertEquals(1000000L, retrieved.get().getThrustN());
     }
 
     // ==================== Get All Engines ====================
@@ -133,7 +138,7 @@ public class EngineServiceIntegrationTest {
 
         assertTrue(engine.isPresent());
         assertEquals("Merlin 1D", engine.get().getName());
-        assertEquals("SpaceX", engine.get().getManufacturer());
+        assertEquals("SpaceX", engine.get().getDesigner());
     }
 
     @Test
@@ -148,29 +153,31 @@ public class EngineServiceIntegrationTest {
     public void testUpdateEngine_Success() {
         Engine updatedData = new Engine();
         updatedData.setName("Merlin 1D Updated");
-        updatedData.setManufacturer("SpaceX");
-        updatedData.setThrust(950.0);
-        updatedData.setIsp(285.0);
-        updatedData.setPropellantType("RP-1/LOX");
-        updatedData.setMass(480.0);
+        updatedData.setDesigner("SpaceX");
+        updatedData.setOrigin("USA");
+        updatedData.setThrustN(950000L);
+        updatedData.setIsp_s(285.0);
+        updatedData.setPropellant("RP-1/LOX");
+        updatedData.setMassKg(480.0);
         updatedData.setDescription("Updated description");
 
         Engine updated = engineService.updateEngine(testEngine.getId(), updatedData);
 
         assertEquals("Merlin 1D Updated", updated.getName());
-        assertEquals(950.0, updated.getThrust());
-        assertEquals(285.0, updated.getIsp());
+        assertEquals(950000L, updated.getThrustN());
+        assertEquals(285.0, updated.getIsp_s());
     }
 
     @Test
     public void testUpdateEngine_NotFound() {
         Engine updatedData = new Engine();
         updatedData.setName("Test");
-        updatedData.setManufacturer("Test");
-        updatedData.setThrust(100.0);
-        updatedData.setIsp(200.0);
-        updatedData.setPropellantType("LOX/H2");
-        updatedData.setMass(100.0);
+        updatedData.setDesigner("Test");
+        updatedData.setOrigin("USA");
+        updatedData.setThrustN(100000L);
+        updatedData.setIsp_s(200.0);
+        updatedData.setPropellant("LOX/H2");
+        updatedData.setMassKg(100.0);
 
         assertThrows(IllegalArgumentException.class, () ->
             engineService.updateEngine(99999L, updatedData)
@@ -181,18 +188,19 @@ public class EngineServiceIntegrationTest {
     public void testUpdateEngine_PartialUpdate() {
         Engine updatedData = new Engine();
         updatedData.setName("Merlin 1D - Modified");
-        updatedData.setManufacturer("SpaceX");
-        updatedData.setThrust(934.0);
-        updatedData.setIsp(282.0);
-        updatedData.setPropellantType("RP-1/LOX");
-        updatedData.setMass(470.0);
+        updatedData.setDesigner("SpaceX");
+        updatedData.setOrigin("USA");
+        updatedData.setThrustN(934000L);
+        updatedData.setIsp_s(282.0);
+        updatedData.setPropellant("RP-1/LOX");
+        updatedData.setMassKg(470.0);
         updatedData.setDescription("Modified description");
 
         Engine updated = engineService.updateEngine(testEngine.getId(), updatedData);
 
         assertEquals("Merlin 1D - Modified", updated.getName());
         assertEquals("Modified description", updated.getDescription());
-        assertEquals(934.0, updated.getThrust()); // Unchanged
+        assertEquals(934000L, updated.getThrustN()); // Unchanged
     }
 
     // ==================== Delete Engine ====================
@@ -214,33 +222,33 @@ public class EngineServiceIntegrationTest {
         assertEquals(3, engineRepository.count());
     }
 
-    // ==================== Filter by Manufacturer ====================
+    // ==================== Filter by Designer ====================
     @Test
-    public void testGetEnginesByManufacturer_Success() {
-        List<Engine> spacexEngines = engineService.getEnginesByManufacturer("SpaceX");
+    public void testGetEnginesByDesigner_Success() {
+        List<Engine> spacexEngines = engineService.getEnginesByDesigner("SpaceX");
 
         assertEquals(2, spacexEngines.size());
-        assertTrue(spacexEngines.stream().allMatch(e -> "SpaceX".equals(e.getManufacturer())));
+        assertTrue(spacexEngines.stream().allMatch(e -> "SpaceX".equals(e.getDesigner())));
     }
 
     @Test
-    public void testGetEnginesByManufacturer_SingleResult() {
-        List<Engine> blueOriginEngines = engineService.getEnginesByManufacturer("Blue Origin");
+    public void testGetEnginesByDesigner_SingleResult() {
+        List<Engine> blueOriginEngines = engineService.getEnginesByDesigner("Blue Origin");
 
         assertEquals(1, blueOriginEngines.size());
         assertEquals("BE-4", blueOriginEngines.get(0).getName());
     }
 
     @Test
-    public void testGetEnginesByManufacturer_NoResults() {
-        List<Engine> engines = engineService.getEnginesByManufacturer("NonExistent");
+    public void testGetEnginesByDesigner_NoResults() {
+        List<Engine> engines = engineService.getEnginesByDesigner("NonExistent");
 
         assertEquals(0, engines.size());
     }
 
     @Test
-    public void testGetEnginesByManufacturer_CaseSensitive() {
-        List<Engine> engines = engineService.getEnginesByManufacturer("spacex");
+    public void testGetEnginesByDesigner_CaseSensitive() {
+        List<Engine> engines = engineService.getEnginesByDesigner("spacex");
 
         // This test depends on whether the service uses case-insensitive queries
         // Current implementation is case-sensitive
@@ -275,34 +283,34 @@ public class EngineServiceIntegrationTest {
     // ==================== Filter by Minimum Thrust ====================
     @Test
     public void testGetEnginesByMinThrust_Success() {
-        List<Engine> highThrustEngines = engineService.getEnginesByMinThrust(2000.0);
+        List<Engine> highThrustEngines = engineService.getEnginesByMinThrust(2000000L);
 
         assertEquals(2, highThrustEngines.size());
-        assertTrue(highThrustEngines.stream().allMatch(e -> e.getThrust() >= 2000.0));
+        assertTrue(highThrustEngines.stream().allMatch(e -> e.getThrustN() >= 2000000));
     }
 
     @Test
     public void testGetEnginesByMinThrust_AllEngines() {
-        List<Engine> allEngines = engineService.getEnginesByMinThrust(0.0);
+        List<Engine> allEngines = engineService.getEnginesByMinThrust(0L);
 
         assertEquals(3, allEngines.size());
     }
 
     @Test
     public void testGetEnginesByMinThrust_NoResults() {
-        List<Engine> engines = engineService.getEnginesByMinThrust(5000.0);
+        List<Engine> engines = engineService.getEnginesByMinThrust(5000000L);
 
         assertEquals(0, engines.size());
     }
 
     @Test
     public void testGetEnginesByMinThrust_BoundaryCondition() {
-        // Note: findByThrustGreaterThan uses strict > not >=
-        // So thrust > 934.0 returns only Raptor 2 and BE-4
-        List<Engine> engines = engineService.getEnginesByMinThrust(934.0);
+        // Note: findByThrustNGreaterThan uses strict > not >=
+        // So thrust > 934000 returns only Raptor 2 and BE-4
+        List<Engine> engines = engineService.getEnginesByMinThrust(934000L);
 
         assertEquals(2, engines.size());
-        assertTrue(engines.stream().allMatch(e -> e.getThrust() > 934.0));
+        assertTrue(engines.stream().allMatch(e -> e.getThrustN() > 934000));
     }
 
     // ==================== Filter by Minimum ISP ====================
@@ -311,7 +319,7 @@ public class EngineServiceIntegrationTest {
         List<Engine> efficientEngines = engineService.getEnginesByMinIsp(350.0);
 
         assertEquals(2, efficientEngines.size());
-        assertTrue(efficientEngines.stream().allMatch(e -> e.getIsp() >= 350.0));
+        assertTrue(efficientEngines.stream().allMatch(e -> e.getIsp_s() >= 350.0));
     }
 
     @Test
@@ -330,7 +338,7 @@ public class EngineServiceIntegrationTest {
 
     @Test
     public void testGetEnginesByMinIsp_BoundaryCondition() {
-        // Note: findByIspGreaterThan uses strict > not >=
+        // Note: findByIsp_sGreaterThan uses strict > not >=
         // So isp > 380.0 returns no engines (Raptor 2 and BE-4 are exactly 380)
         List<Engine> engines = engineService.getEnginesByMinIsp(380.0);
 
@@ -349,11 +357,11 @@ public class EngineServiceIntegrationTest {
     @Test
     public void testMultipleFiltersChained() {
         // Get SpaceX engines
-        List<Engine> spacexEngines = engineService.getEnginesByManufacturer("SpaceX");
+        List<Engine> spacexEngines = engineService.getEnginesByDesigner("SpaceX");
 
         // Filter by thrust
         List<Engine> spacexHighThrust = spacexEngines.stream()
-            .filter(e -> e.getThrust() >= 2000.0)
+            .filter(e -> e.getThrustN() >= 2000000)
             .toList();
 
         assertEquals(1, spacexHighThrust.size());
@@ -365,20 +373,21 @@ public class EngineServiceIntegrationTest {
         // Add an engine
         Engine newEngine = new Engine();
         newEngine.setName("Test Engine");
-        newEngine.setManufacturer("Test Co");
-        newEngine.setThrust(100.0);
-        newEngine.setIsp(200.0);
-        newEngine.setPropellantType("LOX/RP-1");
-        newEngine.setMass(50.0);
+        newEngine.setDesigner("Test Co");
+        newEngine.setOrigin("USA");
+        newEngine.setThrustN(100000L);
+        newEngine.setIsp_s(200.0);
+        newEngine.setPropellant("LOX/RP-1");
+        newEngine.setMassKg(50.0);
 
         engineService.saveEngine(newEngine);
 
         // Retrieve via different methods
         List<Engine> allEngines = engineService.getAllEngines();
-        Optional<Engine> byManufacturer = engineService.getEnginesByManufacturer("Test Co")
+        Optional<Engine> byDesigner = engineService.getEnginesByDesigner("Test Co")
             .stream().findFirst();
 
-        assertTrue(byManufacturer.isPresent());
+        assertTrue(byDesigner.isPresent());
         assertEquals(allEngines.size(), engineRepository.count());
     }
 }

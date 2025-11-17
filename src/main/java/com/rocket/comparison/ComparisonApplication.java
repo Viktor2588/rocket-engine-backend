@@ -1,13 +1,13 @@
-package com.rocket.comparision;
+package com.rocket.comparison;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class ComparisionApplication {
+public class ComparisonApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(ComparisionApplication.class, args);
+		SpringApplication.run(ComparisonApplication.class, args);
 	}
 
 }

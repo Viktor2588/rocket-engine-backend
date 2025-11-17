@@ -1,4 +1,4 @@
-package com.rocket.comparision.entity;
+package com.rocket.comparison.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;

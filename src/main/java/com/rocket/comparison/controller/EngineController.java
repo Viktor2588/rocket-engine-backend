@@ -1,7 +1,7 @@
-package com.rocket.comparision.controller;
+package com.rocket.comparison.controller;
 
-import com.rocket.comparision.entity.Engine;
-import com.rocket.comparision.service.EngineService;
+import com.rocket.comparison.entity.Engine;
+import com.rocket.comparison.service.EngineService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,7 +13,6 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/engines")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class EngineController {
 
     private final EngineService engineService;

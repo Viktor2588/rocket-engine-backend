@@ -1,8 +1,8 @@
-package com.rocket.comparision.controller;
+package com.rocket.comparison.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.rocket.comparision.entity.Engine;
-import com.rocket.comparision.repository.EngineRepository;
+import com.rocket.comparison.entity.Engine;
+import com.rocket.comparison.repository.EngineRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,20 +48,22 @@ public class EngineControllerIntegrationTest {
         // Create test engines
         testEngine = new Engine();
         testEngine.setName("Merlin 1D");
-        testEngine.setManufacturer("SpaceX");
-        testEngine.setThrust(934.0);
-        testEngine.setIsp(282.0);
-        testEngine.setPropellantType("RP-1/LOX");
-        testEngine.setMass(470.0);
+        testEngine.setDesigner("SpaceX");
+        testEngine.setOrigin("USA");
+        testEngine.setThrustN(934000L);
+        testEngine.setIsp_s(282.0);
+        testEngine.setPropellant("RP-1/LOX");
+        testEngine.setMassKg(470.0);
         testEngine.setDescription("The Merlin 1D is used on Falcon 9");
 
         anotherEngine = new Engine();
         anotherEngine.setName("BE-4");
-        anotherEngine.setManufacturer("Blue Origin");
-        anotherEngine.setThrust(2450.0);
-        anotherEngine.setIsp(380.0);
-        anotherEngine.setPropellantType("NG/LOX");
-        anotherEngine.setMass(1300.0);
+        anotherEngine.setDesigner("Blue Origin");
+        anotherEngine.setOrigin("USA");
+        anotherEngine.setThrustN(2450000L);
+        anotherEngine.setIsp_s(380.0);
+        anotherEngine.setPropellant("NG/LOX");
+        anotherEngine.setMassKg(1300.0);
         anotherEngine.setDescription("Used on Atlas V and Vulcan rockets");
 
         engineRepository.save(testEngine);
@@ -95,11 +97,12 @@ public class EngineControllerIntegrationTest {
         mockMvc.perform(get("/api/engines/{id}", engineId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name", is("Merlin 1D")))
-                .andExpect(jsonPath("$.manufacturer", is("SpaceX")))
-                .andExpect(jsonPath("$.thrust", is(934.0)))
-                .andExpect(jsonPath("$.isp", is(282.0)))
-                .andExpect(jsonPath("$.propellantType", is("RP-1/LOX")))
-                .andExpect(jsonPath("$.mass", is(470.0)));
+                .andExpect(jsonPath("$.designer", is("SpaceX")))
+                .andExpect(jsonPath("$.origin", is("USA")))
+                .andExpect(jsonPath("$.thrustN", is(934000)))
+                .andExpect(jsonPath("$.isp_s", is(282.0)))
+                .andExpect(jsonPath("$.propellant", is("RP-1/LOX")))
+                .andExpect(jsonPath("$.massKg", is(470.0)));
     }
 
     @Test
@@ -113,11 +116,12 @@ public class EngineControllerIntegrationTest {
     public void testCreateEngine_Success() throws Exception {
         Engine newEngine = new Engine();
         newEngine.setName("Raptor 2");
-        newEngine.setManufacturer("SpaceX");
-        newEngine.setThrust(2050.0);
-        newEngine.setIsp(380.0);
-        newEngine.setPropellantType("Methane/LOX");
-        newEngine.setMass(1400.0);
+        newEngine.setDesigner("SpaceX");
+        newEngine.setOrigin("USA");
+        newEngine.setThrustN(2050000L);
+        newEngine.setIsp_s(380.0);
+        newEngine.setPropellant("Methane/LOX");
+        newEngine.setMassKg(1400.0);
         newEngine.setDescription("Full-flow staged combustion engine");
 
         mockMvc.perform(post("/api/engines")
@@ -126,8 +130,8 @@ public class EngineControllerIntegrationTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id", notNullValue()))
                 .andExpect(jsonPath("$.name", is("Raptor 2")))
-                .andExpect(jsonPath("$.manufacturer", is("SpaceX")))
-                .andExpect(jsonPath("$.thrust", is(2050.0)));
+                .andExpect(jsonPath("$.designer", is("SpaceX")))
+                .andExpect(jsonPath("$.thrustN", is(2050000)));
 
         // Verify it was saved
         assertEquals(3, engineRepository.count());
@@ -138,11 +142,12 @@ public class EngineControllerIntegrationTest {
         // Additional test for engine creation
         Engine newEngine = new Engine();
         newEngine.setName("Test Engine");
-        newEngine.setManufacturer("Test Mfr");
-        newEngine.setThrust(1000.0);
-        newEngine.setIsp(300.0);
-        newEngine.setPropellantType("Test/Propellant");
-        newEngine.setMass(500.0);
+        newEngine.setDesigner("Test Mfr");
+        newEngine.setOrigin("USA");
+        newEngine.setThrustN(1000000L);
+        newEngine.setIsp_s(300.0);
+        newEngine.setPropellant("Test/Propellant");
+        newEngine.setMassKg(500.0);
         newEngine.setDescription("Test description");
 
         mockMvc.perform(post("/api/engines")
@@ -158,11 +163,12 @@ public class EngineControllerIntegrationTest {
 
         Engine updatedEngine = new Engine();
         updatedEngine.setName("Merlin 1D Updated");
-        updatedEngine.setManufacturer("SpaceX");
-        updatedEngine.setThrust(950.0);
-        updatedEngine.setIsp(285.0);
-        updatedEngine.setPropellantType("RP-1/LOX");
-        updatedEngine.setMass(480.0);
+        updatedEngine.setDesigner("SpaceX");
+        updatedEngine.setOrigin("USA");
+        updatedEngine.setThrustN(950000L);
+        updatedEngine.setIsp_s(285.0);
+        updatedEngine.setPropellant("RP-1/LOX");
+        updatedEngine.setMassKg(480.0);
         updatedEngine.setDescription("Updated description");
 
         mockMvc.perform(put("/api/engines/{id}", engineId)
@@ -171,18 +177,19 @@ public class EngineControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id", is(engineId.intValue())))
                 .andExpect(jsonPath("$.name", is("Merlin 1D Updated")))
-                .andExpect(jsonPath("$.thrust", is(950.0)));
+                .andExpect(jsonPath("$.thrustN", is(950000)));
     }
 
     @Test
     public void testUpdateEngine_NotFound() throws Exception {
         Engine updatedEngine = new Engine();
         updatedEngine.setName("Non-existent Engine");
-        updatedEngine.setManufacturer("Unknown");
-        updatedEngine.setThrust(1000.0);
-        updatedEngine.setIsp(300.0);
-        updatedEngine.setPropellantType("LOX/H2");
-        updatedEngine.setMass(1000.0);
+        updatedEngine.setDesigner("Unknown");
+        updatedEngine.setOrigin("USA");
+        updatedEngine.setThrustN(1000000L);
+        updatedEngine.setIsp_s(300.0);
+        updatedEngine.setPropellant("LOX/H2");
+        updatedEngine.setMassKg(1000.0);
 
         mockMvc.perform(put("/api/engines/{id}", 99999L)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -209,29 +216,29 @@ public class EngineControllerIntegrationTest {
                 .andExpect(status().isNotFound());
     }
 
-    // ==================== Filter by Manufacturer ====================
+    // ==================== Filter by Designer ====================
     @Test
-    public void testGetEnginesByManufacturer_Success() throws Exception {
-        mockMvc.perform(get("/api/engines/manufacturer/{manufacturer}", "SpaceX"))
+    public void testGetEnginesByDesigner_Success() throws Exception {
+        mockMvc.perform(get("/api/engines/designer/{designer}", "SpaceX"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
                 .andExpect(jsonPath("$[0].name", is("Merlin 1D")))
-                .andExpect(jsonPath("$[0].manufacturer", is("SpaceX")));
+                .andExpect(jsonPath("$[0].designer", is("SpaceX")));
     }
 
     @Test
-    public void testGetEnginesByManufacturer_NoResults() throws Exception {
-        mockMvc.perform(get("/api/engines/manufacturer/{manufacturer}", "NonExistent"))
+    public void testGetEnginesByDesigner_NoResults() throws Exception {
+        mockMvc.perform(get("/api/engines/designer/{designer}", "NonExistent"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(0)));
     }
 
-    // ==================== Filter by Propellant Type ====================
+    // ==================== Filter by Propellant ====================
     @Test
     public void testGetEnginesByPropellant_IntegrationWithService() throws Exception {
         // This test verifies the full flow from controller to service
         // Detailed propellant filtering logic tests are in EngineServiceIntegrationTest
-        mockMvc.perform(get("/api/engines/manufacturer/{manufacturer}", "SpaceX"))
+        mockMvc.perform(get("/api/engines/propellant/{propellant}", "RP-1/LOX"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(greaterThanOrEqualTo(1))));
     }
@@ -239,23 +246,23 @@ public class EngineControllerIntegrationTest {
     // ==================== Filter by Minimum Thrust ====================
     @Test
     public void testGetEnginesByMinThrust_Success() throws Exception {
-        mockMvc.perform(get("/api/engines/thrust-min/{thrust}", 2000.0))
+        mockMvc.perform(get("/api/engines/thrust-min/{thrust}", 2000000))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
                 .andExpect(jsonPath("$[0].name", is("BE-4")))
-                .andExpect(jsonPath("$[0].thrust", is(2450.0)));
+                .andExpect(jsonPath("$[0].thrustN", is(2450000)));
     }
 
     @Test
     public void testGetEnginesByMinThrust_MultipleResults() throws Exception {
-        mockMvc.perform(get("/api/engines/thrust-min/{thrust}", 500.0))
+        mockMvc.perform(get("/api/engines/thrust-min/{thrust}", 500000))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(2)));
     }
 
     @Test
     public void testGetEnginesByMinThrust_NoResults() throws Exception {
-        mockMvc.perform(get("/api/engines/thrust-min/{thrust}", 5000.0))
+        mockMvc.perform(get("/api/engines/thrust-min/{thrust}", 5000000))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(0)));
     }
@@ -267,7 +274,7 @@ public class EngineControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
                 .andExpect(jsonPath("$[0].name", is("BE-4")))
-                .andExpect(jsonPath("$[0].isp", is(380.0)));
+                .andExpect(jsonPath("$[0].isp_s", is(380.0)));
     }
 
     @Test

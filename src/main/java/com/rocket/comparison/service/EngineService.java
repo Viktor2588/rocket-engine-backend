@@ -1,7 +1,7 @@
-package com.rocket.comparision.service;
+package com.rocket.comparison.service;
 
-import com.rocket.comparision.entity.Engine;
-import com.rocket.comparision.repository.EngineRepository;
+import com.rocket.comparison.entity.Engine;
+import com.rocket.comparison.repository.EngineRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
