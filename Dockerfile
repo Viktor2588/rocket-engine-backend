@@ -7,9 +7,19 @@ RUN ./gradlew clean build -x test
 # Runtime stage
 FROM eclipse-temurin:17-jre
 WORKDIR /app
+
+# Install curl and bash for entrypoint script
+RUN apt-get update && apt-get install -y curl bash && rm -rf /var/lib/apt/lists/*
+
+# Copy application JAR
 COPY --from=builder /build/build/libs/*.jar app.jar
+
+# Copy seed scripts and entrypoint
+COPY scripts/ ./scripts/
+COPY docker-entrypoint.sh ./
+RUN chmod +x /app/docker-entrypoint.sh
 
 EXPOSE 8080
 ENV SPRING_PROFILES_ACTIVE=production
 
-ENTRYPOINT ["java", "-Dspring.profiles.active=production", "-jar", "app.jar"]
+ENTRYPOINT ["/app/docker-entrypoint.sh"]

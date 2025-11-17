@@ -665,5 +665,25 @@ curl -s -X POST "$API_URL" -H "$CONTENT_TYPE" -d '{
 }'
 echo "✅ Aquila added"
 
+# 34. Archimedes
+curl -s -X POST "$API_URL" -H "$CONTENT_TYPE" -d '{
+  "name": "Archimedes",
+  "origin": "USA",
+  "designer": "Rocket Lab",
+  "vehicle": "Neutron",
+  "status": "Development",
+  "use": "2nd stage",
+  "propellant": "RP-1 / LOX",
+  "powerCycle": "Gas generator",
+  "isp_s": 290.0,
+  "thrustN": 45000,
+  "chamberPressureBar": null,
+  "massKg": 35.0,
+  "thrustToWeightRatio": null,
+  "ofRatio": null,
+  "description": "The Archimedes is an upper stage engine being developed by Rocket Lab for the Neutron rocket."
+}'
+echo "✅ Archimedes added"
+
 echo ""
-echo "✅ All 33 rocket engines seeded successfully!"
+echo "✅ All 34 rocket engines seeded successfully!"
