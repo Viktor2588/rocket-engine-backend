@@ -26,8 +26,8 @@ if [ $attempt -eq $max_attempts ]; then
     echo "⚠️ Application startup check timed out, but continuing anyway..."
 fi
 
-# Give app a bit more time to settle
-sleep 3
+# Give app more time to fully initialize
+sleep 10
 
 # Check if database is empty by trying to get engines
 echo "Checking database status..."
