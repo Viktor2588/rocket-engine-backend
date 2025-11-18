@@ -7,16 +7,17 @@ java -Dspring.profiles.active=production -jar /app/app.jar &
 APP_PID=$!
 
 # Wait for the application to be ready
-echo "Waiting for application to start..."
-max_attempts=60
+echo "Waiting for application to start (this can take 90+ seconds)..."
+max_attempts=120
 attempt=0
 while [ $attempt -lt $max_attempts ]; do
     if curl -s http://localhost:8080/api/engines > /dev/null 2>&1; then
         echo "✅ Application is ready!"
+        sleep 5  # Extra safety wait after API responds
         break
     fi
     attempt=$((attempt + 1))
-    if [ $((attempt % 10)) -eq 0 ]; then
+    if [ $((attempt % 20)) -eq 0 ]; then
         echo "⏳ Still waiting... ($attempt/$max_attempts seconds)"
     fi
     sleep 1
@@ -24,10 +25,8 @@ done
 
 if [ $attempt -eq $max_attempts ]; then
     echo "⚠️ Application startup check timed out, but continuing anyway..."
+    sleep 10
 fi
-
-# Give app more time to fully initialize
-sleep 10
 
 # Check if database is empty by trying to get engines
 echo "Checking database status..."
