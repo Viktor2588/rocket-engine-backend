@@ -5,6 +5,7 @@ import com.rocket.comparison.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -287,7 +288,427 @@ public class ComparisonService {
         return comparison;
     }
 
+    // ==================== Gap Analysis (Milestone 8) ====================
+
+    /**
+     * Analyze the gap between two countries across all dimensions
+     */
+    public Map<String, Object> analyzeGap(Long country1Id, Long country2Id) {
+        Map<String, Object> analysis = new LinkedHashMap<>();
+
+        Optional<Country> country1Opt = countryRepository.findById(country1Id);
+        Optional<Country> country2Opt = countryRepository.findById(country2Id);
+
+        if (country1Opt.isEmpty() || country2Opt.isEmpty()) {
+            return Map.of("error", "One or both countries not found");
+        }
+
+        Country c1 = country1Opt.get();
+        Country c2 = country2Opt.get();
+
+        analysis.put("country1", buildCountryBasicInfo(c1));
+        analysis.put("country2", buildCountryBasicInfo(c2));
+
+        // Capability gaps
+        Map<String, Object> capabilityGaps = new LinkedHashMap<>();
+
+        Double score1 = c1.getOverallCapabilityScore() != null ? c1.getOverallCapabilityScore() : 0.0;
+        Double score2 = c2.getOverallCapabilityScore() != null ? c2.getOverallCapabilityScore() : 0.0;
+        capabilityGaps.put("overallScoreGap", Math.abs(score1 - score2));
+        capabilityGaps.put("leader", score1 > score2 ? c1.getName() : c2.getName());
+
+        analysis.put("capabilityGaps", capabilityGaps);
+
+        // Technology gaps
+        Map<String, Object> techGaps = new LinkedHashMap<>();
+
+        boolean launch1 = Boolean.TRUE.equals(c1.getIndependentLaunchCapable());
+        boolean launch2 = Boolean.TRUE.equals(c2.getIndependentLaunchCapable());
+        techGaps.put("launchCapabilityGap", launch1 != launch2 ?
+            (launch1 ? c1.getName() + " has independent launch, " + c2.getName() + " does not" :
+                      c2.getName() + " has independent launch, " + c1.getName() + " does not") : "Equal");
+
+        boolean human1 = Boolean.TRUE.equals(c1.getHumanSpaceflightCapable());
+        boolean human2 = Boolean.TRUE.equals(c2.getHumanSpaceflightCapable());
+        techGaps.put("humanSpaceflightGap", human1 != human2 ?
+            (human1 ? c1.getName() + " has human spaceflight, " + c2.getName() + " does not" :
+                      c2.getName() + " has human spaceflight, " + c1.getName() + " does not") : "Equal");
+
+        boolean reusable1 = Boolean.TRUE.equals(c1.getReusableRocketCapable());
+        boolean reusable2 = Boolean.TRUE.equals(c2.getReusableRocketCapable());
+        techGaps.put("reusableRocketGap", reusable1 != reusable2 ?
+            (reusable1 ? c1.getName() + " has reusable rockets, " + c2.getName() + " does not" :
+                        c2.getName() + " has reusable rockets, " + c1.getName() + " does not") : "Equal");
+
+        analysis.put("technologyGaps", techGaps);
+
+        // Asset gaps
+        Map<String, Object> assetGaps = new LinkedHashMap<>();
+
+        Long engines1 = engineRepository.countByCountryId(c1.getId());
+        Long engines2 = engineRepository.countByCountryId(c2.getId());
+        assetGaps.put("engineCountGap", Math.abs(engines1 - engines2));
+        assetGaps.put("engineLeader", engines1 > engines2 ? c1.getName() : c2.getName());
+
+        Long sats1 = satelliteRepository.countByCountry(c1.getId());
+        Long sats2 = satelliteRepository.countByCountry(c2.getId());
+        assetGaps.put("satelliteCountGap", Math.abs(sats1 - sats2));
+        assetGaps.put("satelliteLeader", sats1 > sats2 ? c1.getName() : c2.getName());
+
+        Long sites1 = launchSiteRepository.countByCountry(c1.getId());
+        Long sites2 = launchSiteRepository.countByCountry(c2.getId());
+        assetGaps.put("launchSiteCountGap", Math.abs(sites1 - sites2));
+        assetGaps.put("launchSiteLeader", sites1 > sites2 ? c1.getName() : c2.getName());
+
+        Long missions1 = spaceMissionRepository.countByCountry(c1.getId());
+        Long missions2 = spaceMissionRepository.countByCountry(c2.getId());
+        assetGaps.put("missionCountGap", Math.abs(missions1 - missions2));
+        assetGaps.put("missionLeader", missions1 > missions2 ? c1.getName() : c2.getName());
+
+        analysis.put("assetGaps", assetGaps);
+
+        // Investment gaps
+        Map<String, Object> investmentGaps = new LinkedHashMap<>();
+
+        BigDecimal budget1 = c1.getAnnualBudgetUsd() != null ? c1.getAnnualBudgetUsd() : BigDecimal.ZERO;
+        BigDecimal budget2 = c2.getAnnualBudgetUsd() != null ? c2.getAnnualBudgetUsd() : BigDecimal.ZERO;
+        investmentGaps.put("budgetGapUsd", budget1.subtract(budget2).abs());
+        investmentGaps.put("budgetLeader", budget1.compareTo(budget2) > 0 ? c1.getName() : c2.getName());
+
+        Integer employees1 = c1.getTotalSpaceAgencyEmployees() != null ? c1.getTotalSpaceAgencyEmployees() : 0;
+        Integer employees2 = c2.getTotalSpaceAgencyEmployees() != null ? c2.getTotalSpaceAgencyEmployees() : 0;
+        investmentGaps.put("employeeCountGap", Math.abs(employees1 - employees2));
+        investmentGaps.put("employeeLeader", employees1 > employees2 ? c1.getName() : c2.getName());
+
+        analysis.put("investmentGaps", investmentGaps);
+
+        // Summary with recommendations
+        List<String> recommendations = generateGapRecommendations(c1, c2);
+        analysis.put("recommendations", recommendations);
+
+        return analysis;
+    }
+
+    /**
+     * SWOT-style analysis for a single country
+     */
+    public Map<String, Object> analyzeStrengthsWeaknesses(Long countryId) {
+        Map<String, Object> analysis = new LinkedHashMap<>();
+
+        Optional<Country> countryOpt = countryRepository.findById(countryId);
+        if (countryOpt.isEmpty()) {
+            return Map.of("error", "Country not found");
+        }
+
+        Country country = countryOpt.get();
+        analysis.put("country", buildCountryBasicInfo(country));
+
+        // Strengths
+        List<String> strengths = new ArrayList<>();
+
+        if (Boolean.TRUE.equals(country.getIndependentLaunchCapable())) {
+            strengths.add("Independent launch capability");
+        }
+        if (Boolean.TRUE.equals(country.getHumanSpaceflightCapable())) {
+            strengths.add("Human spaceflight capability");
+        }
+        if (Boolean.TRUE.equals(country.getReusableRocketCapable())) {
+            strengths.add("Reusable rocket technology");
+        }
+        if (Boolean.TRUE.equals(country.getDeepSpaceCapable())) {
+            strengths.add("Deep space exploration capability");
+        }
+        if (Boolean.TRUE.equals(country.getSpaceStationCapable())) {
+            strengths.add("Space station capability");
+        }
+        if (Boolean.TRUE.equals(country.getLunarLandingCapable())) {
+            strengths.add("Lunar landing capability");
+        }
+        if (Boolean.TRUE.equals(country.getMarsLandingCapable())) {
+            strengths.add("Mars landing capability");
+        }
+
+        if (country.getOverallCapabilityScore() != null && country.getOverallCapabilityScore() > 70) {
+            strengths.add("High overall capability score (" + country.getOverallCapabilityScore() + ")");
+        }
+
+        if (country.getLaunchSuccessRate() != null && country.getLaunchSuccessRate() > 95) {
+            strengths.add("Excellent launch success rate (" + country.getLaunchSuccessRate() + "%)");
+        }
+
+        Long engineCount = engineRepository.countByCountryId(countryId);
+        if (engineCount > 5) {
+            strengths.add("Strong engine development program (" + engineCount + " engines)");
+        }
+
+        Long satelliteCount = satelliteRepository.countByCountry(countryId);
+        if (satelliteCount > 20) {
+            strengths.add("Large satellite fleet (" + satelliteCount + " satellites)");
+        }
+
+        // Check for global firsts
+        Long globalFirsts = spaceMilestoneRepository.findByCountryIdOrderByDateAchievedAsc(countryId)
+            .stream().filter(SpaceMilestone::getIsGlobalFirst).count();
+        if (globalFirsts > 0) {
+            strengths.add("Historic achievements (" + globalFirsts + " global firsts)");
+        }
+
+        analysis.put("strengths", strengths);
+
+        // Weaknesses
+        List<String> weaknesses = new ArrayList<>();
+
+        if (!Boolean.TRUE.equals(country.getIndependentLaunchCapable())) {
+            weaknesses.add("No independent launch capability - dependent on partners");
+        }
+        if (!Boolean.TRUE.equals(country.getHumanSpaceflightCapable())) {
+            weaknesses.add("No human spaceflight capability");
+        }
+        if (!Boolean.TRUE.equals(country.getReusableRocketCapable())) {
+            weaknesses.add("No reusable rocket technology - higher launch costs");
+        }
+
+        if (country.getOverallCapabilityScore() != null && country.getOverallCapabilityScore() < 30) {
+            weaknesses.add("Low overall capability score (" + country.getOverallCapabilityScore() + ")");
+        }
+
+        if (country.getLaunchSuccessRate() != null && country.getLaunchSuccessRate() < 90) {
+            weaknesses.add("Launch reliability concerns (" + country.getLaunchSuccessRate() + "% success rate)");
+        }
+
+        Long launchSiteCount = launchSiteRepository.countByCountry(countryId);
+        if (launchSiteCount == 0) {
+            weaknesses.add("No domestic launch sites");
+        }
+
+        if (country.getAnnualBudgetUsd() != null &&
+            country.getAnnualBudgetUsd().compareTo(new BigDecimal("500000000")) < 0) {
+            weaknesses.add("Limited budget (< $500M annually)");
+        }
+
+        analysis.put("weaknesses", weaknesses);
+
+        // Opportunities
+        List<String> opportunities = new ArrayList<>();
+
+        if (!Boolean.TRUE.equals(country.getReusableRocketCapable())) {
+            opportunities.add("Develop reusable rocket technology to reduce launch costs");
+        }
+        if (!Boolean.TRUE.equals(country.getDeepSpaceCapable())) {
+            opportunities.add("Expand into deep space exploration");
+        }
+        if (satelliteCount < 10) {
+            opportunities.add("Expand satellite constellation for communications and Earth observation");
+        }
+        if (launchSiteCount == 0) {
+            opportunities.add("Develop domestic launch infrastructure or partner with launch providers");
+        }
+
+        // Check for partnerships
+        opportunities.add("International partnerships for technology sharing and cost reduction");
+        opportunities.add("Commercial space sector development");
+
+        analysis.put("opportunities", opportunities);
+
+        // Threats
+        List<String> threats = new ArrayList<>();
+
+        threats.add("Growing competition from emerging space nations");
+        threats.add("Space debris and orbital congestion risks");
+        if (!Boolean.TRUE.equals(country.getIndependentLaunchCapable())) {
+            threats.add("Geopolitical risks affecting launch access");
+        }
+        if (country.getAnnualBudgetUsd() != null &&
+            country.getAnnualBudgetUsd().compareTo(new BigDecimal("1000000000")) < 0) {
+            threats.add("Budget constraints limiting program expansion");
+        }
+        threats.add("Talent retention in competitive global space industry");
+
+        analysis.put("threats", threats);
+
+        // Calculate overall assessment
+        Map<String, Object> assessment = new LinkedHashMap<>();
+        assessment.put("strengthCount", strengths.size());
+        assessment.put("weaknessCount", weaknesses.size());
+        assessment.put("tier", determineTier(country));
+        assessment.put("trajectory", determineTrajectory(country));
+
+        analysis.put("overallAssessment", assessment);
+
+        return analysis;
+    }
+
+    /**
+     * Get rankings across all countries
+     */
+    public Map<String, Object> getCountryRankings() {
+        Map<String, Object> rankings = new LinkedHashMap<>();
+
+        List<Country> allCountries = countryRepository.findAll();
+
+        // Overall capability ranking
+        List<Map<String, Object>> byCapability = allCountries.stream()
+            .filter(c -> c.getOverallCapabilityScore() != null)
+            .sorted((a, b) -> Double.compare(b.getOverallCapabilityScore(), a.getOverallCapabilityScore()))
+            .map(c -> {
+                Map<String, Object> entry = new LinkedHashMap<>();
+                entry.put("rank", 0); // Will be filled below
+                entry.put("countryId", c.getId());
+                entry.put("countryName", c.getName());
+                entry.put("isoCode", c.getIsoCode());
+                entry.put("score", c.getOverallCapabilityScore());
+                return entry;
+            })
+            .toList();
+
+        // Add ranks
+        List<Map<String, Object>> rankedByCapability = new ArrayList<>();
+        for (int i = 0; i < byCapability.size(); i++) {
+            Map<String, Object> entry = new LinkedHashMap<>(byCapability.get(i));
+            entry.put("rank", i + 1);
+            rankedByCapability.add(entry);
+        }
+        rankings.put("byOverallCapability", rankedByCapability);
+
+        // By total launches
+        List<Map<String, Object>> byLaunches = allCountries.stream()
+            .filter(c -> c.getTotalLaunches() != null && c.getTotalLaunches() > 0)
+            .sorted((a, b) -> Integer.compare(b.getTotalLaunches(), a.getTotalLaunches()))
+            .map(c -> {
+                Map<String, Object> entry = new LinkedHashMap<>();
+                entry.put("countryId", c.getId());
+                entry.put("countryName", c.getName());
+                entry.put("totalLaunches", c.getTotalLaunches());
+                entry.put("successfulLaunches", c.getSuccessfulLaunches());
+                entry.put("successRate", c.getLaunchSuccessRate());
+                return entry;
+            })
+            .toList();
+
+        List<Map<String, Object>> rankedByLaunches = new ArrayList<>();
+        for (int i = 0; i < byLaunches.size(); i++) {
+            Map<String, Object> entry = new LinkedHashMap<>(byLaunches.get(i));
+            entry.put("rank", i + 1);
+            rankedByLaunches.add(entry);
+        }
+        rankings.put("byTotalLaunches", rankedByLaunches);
+
+        // By budget
+        List<Map<String, Object>> byBudget = allCountries.stream()
+            .filter(c -> c.getAnnualBudgetUsd() != null && c.getAnnualBudgetUsd().compareTo(BigDecimal.ZERO) > 0)
+            .sorted((a, b) -> b.getAnnualBudgetUsd().compareTo(a.getAnnualBudgetUsd()))
+            .map(c -> {
+                Map<String, Object> entry = new LinkedHashMap<>();
+                entry.put("countryId", c.getId());
+                entry.put("countryName", c.getName());
+                entry.put("annualBudgetUsd", c.getAnnualBudgetUsd());
+                entry.put("budgetAsPercentOfGdp", c.getBudgetAsPercentOfGdp());
+                return entry;
+            })
+            .toList();
+
+        List<Map<String, Object>> rankedByBudget = new ArrayList<>();
+        for (int i = 0; i < byBudget.size(); i++) {
+            Map<String, Object> entry = new LinkedHashMap<>(byBudget.get(i));
+            entry.put("rank", i + 1);
+            rankedByBudget.add(entry);
+        }
+        rankings.put("byAnnualBudget", rankedByBudget);
+
+        // By success rate (min 10 launches)
+        List<Map<String, Object>> bySuccessRate = allCountries.stream()
+            .filter(c -> c.getTotalLaunches() != null && c.getTotalLaunches() >= 10)
+            .filter(c -> c.getLaunchSuccessRate() != null)
+            .sorted((a, b) -> Double.compare(b.getLaunchSuccessRate(), a.getLaunchSuccessRate()))
+            .map(c -> {
+                Map<String, Object> entry = new LinkedHashMap<>();
+                entry.put("countryId", c.getId());
+                entry.put("countryName", c.getName());
+                entry.put("successRate", c.getLaunchSuccessRate());
+                entry.put("totalLaunches", c.getTotalLaunches());
+                return entry;
+            })
+            .toList();
+
+        List<Map<String, Object>> rankedBySuccessRate = new ArrayList<>();
+        for (int i = 0; i < bySuccessRate.size(); i++) {
+            Map<String, Object> entry = new LinkedHashMap<>(bySuccessRate.get(i));
+            entry.put("rank", i + 1);
+            rankedBySuccessRate.add(entry);
+        }
+        rankings.put("bySuccessRate", rankedBySuccessRate);
+
+        rankings.put("totalCountries", allCountries.size());
+
+        return rankings;
+    }
+
     // ==================== Private Helper Methods ====================
+
+    private List<String> generateGapRecommendations(Country c1, Country c2) {
+        List<String> recommendations = new ArrayList<>();
+
+        // Compare and generate recommendations for the country with lower score
+        Country leader = c1.getOverallCapabilityScore() != null && c2.getOverallCapabilityScore() != null &&
+                        c1.getOverallCapabilityScore() > c2.getOverallCapabilityScore() ? c1 : c2;
+        Country laggard = leader == c1 ? c2 : c1;
+
+        if (Boolean.TRUE.equals(leader.getIndependentLaunchCapable()) &&
+            !Boolean.TRUE.equals(laggard.getIndependentLaunchCapable())) {
+            recommendations.add(laggard.getName() + " should develop independent launch capability to reduce dependency on partners");
+        }
+
+        if (Boolean.TRUE.equals(leader.getReusableRocketCapable()) &&
+            !Boolean.TRUE.equals(laggard.getReusableRocketCapable())) {
+            recommendations.add(laggard.getName() + " should invest in reusable rocket technology to reduce costs");
+        }
+
+        Long leaderEngines = engineRepository.countByCountryId(leader.getId());
+        Long laggardEngines = engineRepository.countByCountryId(laggard.getId());
+        if (leaderEngines > laggardEngines * 2) {
+            recommendations.add(laggard.getName() + " should expand engine development program");
+        }
+
+        Long leaderSites = launchSiteRepository.countByCountry(leader.getId());
+        Long laggardSites = launchSiteRepository.countByCountry(laggard.getId());
+        if (leaderSites > laggardSites) {
+            recommendations.add(laggard.getName() + " could benefit from additional launch infrastructure");
+        }
+
+        if (leader.getAnnualBudgetUsd() != null && laggard.getAnnualBudgetUsd() != null &&
+            leader.getAnnualBudgetUsd().compareTo(laggard.getAnnualBudgetUsd().multiply(new BigDecimal("2"))) > 0) {
+            recommendations.add(laggard.getName() + " may need increased space program funding to close the gap");
+        }
+
+        recommendations.add("Collaboration between " + c1.getName() + " and " + c2.getName() + " could be mutually beneficial");
+
+        return recommendations;
+    }
+
+    private String determineTier(Country country) {
+        Double score = country.getOverallCapabilityScore();
+        if (score == null) return "Unranked";
+        if (score >= 80) return "Tier 1 - Space Superpower";
+        if (score >= 60) return "Tier 2 - Major Space Power";
+        if (score >= 40) return "Tier 3 - Established Space Nation";
+        if (score >= 20) return "Tier 4 - Emerging Space Nation";
+        return "Tier 5 - Developing Space Capability";
+    }
+
+    private String determineTrajectory(Country country) {
+        // This would ideally use historical data
+        // For now, use heuristics based on recent activity indicators
+        if (Boolean.TRUE.equals(country.getReusableRocketCapable())) {
+            return "Rising - Active in cutting-edge technology";
+        }
+        if (country.getOverallCapabilityScore() != null && country.getOverallCapabilityScore() > 50) {
+            return "Stable - Maintaining strong position";
+        }
+        if (Boolean.TRUE.equals(country.getIndependentLaunchCapable())) {
+            return "Growing - Building launch capabilities";
+        }
+        return "Emerging - Developing space program";
+    }
 
     private Map<String, Object> buildCountryBasicInfo(Country country) {
         Map<String, Object> info = new LinkedHashMap<>();

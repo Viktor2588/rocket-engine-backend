@@ -118,4 +118,39 @@ public class ComparisonController {
             @RequestParam List<Long> siteIds) {
         return ResponseEntity.ok(comparisonService.compareLaunchSites(siteIds));
     }
+
+    // ==================== Gap Analysis (Milestone 8) ====================
+
+    /**
+     * Analyze capability gap between two countries
+     * @param countryId1 First country ID
+     * @param countryId2 Second country ID
+     * Returns: Detailed gap analysis including technology, assets, investment, recommendations
+     */
+    @GetMapping("/gap-analysis")
+    public ResponseEntity<Map<String, Object>> analyzeGap(
+            @RequestParam Long countryId1,
+            @RequestParam Long countryId2) {
+        return ResponseEntity.ok(comparisonService.analyzeGap(countryId1, countryId2));
+    }
+
+    /**
+     * SWOT-style analysis for a single country
+     * @param countryId Country ID to analyze
+     * Returns: Strengths, Weaknesses, Opportunities, Threats analysis
+     */
+    @GetMapping("/swot/{countryId}")
+    public ResponseEntity<Map<String, Object>> analyzeStrengthsWeaknesses(
+            @PathVariable Long countryId) {
+        return ResponseEntity.ok(comparisonService.analyzeStrengthsWeaknesses(countryId));
+    }
+
+    /**
+     * Get global country rankings across all dimensions
+     * Returns: Rankings by capability score, launches, budget, success rate
+     */
+    @GetMapping("/rankings")
+    public ResponseEntity<Map<String, Object>> getCountryRankings() {
+        return ResponseEntity.ok(comparisonService.getCountryRankings());
+    }
 }
