@@ -46,6 +46,23 @@ public class EngineService {
         return engineRepository.findByIsp_sGreaterThan(isp);
     }
 
+    // Country-based queries
+    public List<Engine> getEnginesByCountryId(Long countryId) {
+        return engineRepository.findByCountryId(countryId);
+    }
+
+    public List<Engine> getEnginesByCountryCode(String isoCode) {
+        return engineRepository.findByCountryIsoCode(isoCode.toUpperCase());
+    }
+
+    public List<Engine> getEnginesByOrigin(String origin) {
+        return engineRepository.findByOrigin(origin);
+    }
+
+    public Long countEnginesByCountryId(Long countryId) {
+        return engineRepository.countByCountryId(countryId);
+    }
+
     public Engine updateEngine(Long id, Engine engineDetails) {
         Engine engine = engineRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Engine not found with id: " + id));
@@ -65,6 +82,7 @@ public class EngineService {
         engine.setThrustToWeightRatio(engineDetails.getThrustToWeightRatio());
         engine.setOfRatio(engineDetails.getOfRatio());
         engine.setDescription(engineDetails.getDescription());
+        engine.setCountry(engineDetails.getCountry());
 
         return engineRepository.save(engine);
     }

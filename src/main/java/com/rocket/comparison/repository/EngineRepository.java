@@ -16,4 +16,15 @@ public interface EngineRepository extends JpaRepository<Engine, Long> {
 
     @Query("SELECT e FROM Engine e WHERE e.isp_s > :isp")
     List<Engine> findByIsp_sGreaterThan(@Param("isp") Double isp);
+
+    // Country-based queries
+    List<Engine> findByCountryId(Long countryId);
+
+    List<Engine> findByCountryIsoCode(String isoCode);
+
+    @Query("SELECT e FROM Engine e WHERE e.origin = :origin")
+    List<Engine> findByOrigin(@Param("origin") String origin);
+
+    @Query("SELECT COUNT(e) FROM Engine e WHERE e.country.id = :countryId")
+    Long countByCountryId(@Param("countryId") Long countryId);
 }

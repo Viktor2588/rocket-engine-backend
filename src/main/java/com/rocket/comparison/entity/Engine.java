@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Entity
 @Table(name = "engines")
@@ -20,8 +21,15 @@ public class Engine {
     @Column(nullable = false)
     private String name;
 
+    // Legacy field - kept for backwards compatibility with existing data
     @Column(nullable = true)
     private String origin; // e.g., "USA", "Russia", "China"
+
+    // New relationship to Country entity
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "country_id", nullable = true)
+    @JsonIgnoreProperties({"engines", "description"})
+    private Country country;
 
     @Column(nullable = true)
     private String designer; // e.g., "SpaceX", "NPO Energomash"

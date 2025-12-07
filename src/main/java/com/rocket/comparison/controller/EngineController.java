@@ -74,6 +74,22 @@ public class EngineController {
         return ResponseEntity.ok(engineService.getEnginesByMinIsp(isp));
     }
 
+    // Country-based endpoints
+    @GetMapping("/by-country/{countryId}")
+    public ResponseEntity<List<Engine>> getEnginesByCountryId(@PathVariable Long countryId) {
+        return ResponseEntity.ok(engineService.getEnginesByCountryId(countryId));
+    }
+
+    @GetMapping("/by-country-code/{isoCode}")
+    public ResponseEntity<List<Engine>> getEnginesByCountryCode(@PathVariable String isoCode) {
+        return ResponseEntity.ok(engineService.getEnginesByCountryCode(isoCode));
+    }
+
+    @GetMapping("/by-origin/{origin}")
+    public ResponseEntity<List<Engine>> getEnginesByOrigin(@PathVariable String origin) {
+        return ResponseEntity.ok(engineService.getEnginesByOrigin(origin));
+    }
+
     @GetMapping("/compare")
     public ResponseEntity<?> compareEngines(@RequestParam Long engine1Id, @RequestParam Long engine2Id) {
         Optional<Engine> engine1 = engineService.getEngineById(engine1Id);
