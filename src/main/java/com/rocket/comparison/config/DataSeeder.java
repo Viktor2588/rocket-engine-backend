@@ -35,23 +35,49 @@ public class DataSeeder implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
-        if (countryRepository.count() > 0) {
-            log.info("Database already seeded, skipping...");
-            return;
+        log.info("Checking database for missing seed data...");
+
+        // Seed each entity type independently if missing
+        if (countryRepository.count() == 0) {
+            log.info("Seeding countries...");
+            seedCountries();
+        } else {
+            // Load existing countries into map for reference
+            loadExistingCountries();
         }
 
-        log.info("Starting database seeding...");
+        if (engineRepository.count() == 0) {
+            log.info("Seeding engines...");
+            seedEngines();
+        }
 
-        seedCountries();
-        seedEngines();
-        seedLaunchVehicles();
-        seedMilestones();
-        seedMissions();
-        seedSatellites();
-        seedLaunchSites();
+        if (launchVehicleRepository.count() == 0) {
+            log.info("Seeding launch vehicles...");
+            seedLaunchVehicles();
+        }
 
-        log.info("Database seeding completed!");
-        log.info("Seeded: {} countries, {} engines, {} launch vehicles, {} milestones, {} missions, {} satellites, {} launch sites",
+        if (spaceMilestoneRepository.count() == 0) {
+            log.info("Seeding milestones...");
+            seedMilestones();
+        }
+
+        if (spaceMissionRepository.count() == 0) {
+            log.info("Seeding missions...");
+            seedMissions();
+        }
+
+        if (satelliteRepository.count() == 0) {
+            log.info("Seeding satellites...");
+            seedSatellites();
+        }
+
+        if (launchSiteRepository.count() == 0) {
+            log.info("Seeding launch sites...");
+            seedLaunchSites();
+        }
+
+        log.info("Database check completed!");
+        log.info("Current counts: {} countries, {} engines, {} launch vehicles, {} milestones, {} missions, {} satellites, {} launch sites",
             countryRepository.count(),
             engineRepository.count(),
             launchVehicleRepository.count(),
@@ -60,6 +86,13 @@ public class DataSeeder implements CommandLineRunner {
             satelliteRepository.count(),
             launchSiteRepository.count()
         );
+    }
+
+    private void loadExistingCountries() {
+        countryRepository.findAll().forEach(country -> {
+            countryMap.put(country.getIsoCode(), country);
+        });
+        log.info("Loaded {} existing countries", countryMap.size());
     }
 
     private void seedCountries() {
