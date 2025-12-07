@@ -1,5 +1,6 @@
 package com.rocket.comparison.service;
 
+import com.rocket.comparison.constants.SpaceConstants;
 import com.rocket.comparison.entity.*;
 import com.rocket.comparison.repository.*;
 import lombok.RequiredArgsConstructor;
@@ -8,6 +9,8 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import static com.rocket.comparison.constants.SpaceConstants.*;
 
 /**
  * Service providing advanced side-by-side comparison capabilities.
@@ -428,21 +431,21 @@ public class ComparisonService {
             strengths.add("Mars landing capability");
         }
 
-        if (country.getOverallCapabilityScore() != null && country.getOverallCapabilityScore() > 70) {
+        if (country.getOverallCapabilityScore() != null && country.getOverallCapabilityScore() > TOP_TIER_SCORE_THRESHOLD) {
             strengths.add("High overall capability score (" + country.getOverallCapabilityScore() + ")");
         }
 
-        if (country.getLaunchSuccessRate() != null && country.getLaunchSuccessRate() > 95) {
+        if (country.getLaunchSuccessRate() != null && country.getLaunchSuccessRate() > EXCELLENT_SUCCESS_RATE) {
             strengths.add("Excellent launch success rate (" + country.getLaunchSuccessRate() + "%)");
         }
 
         Long engineCount = engineRepository.countByCountryId(countryId);
-        if (engineCount > 5) {
+        if (engineCount > STRONG_ENGINE_PROGRAM_THRESHOLD) {
             strengths.add("Strong engine development program (" + engineCount + " engines)");
         }
 
         Long satelliteCount = satelliteRepository.countByCountry(countryId);
-        if (satelliteCount > 20) {
+        if (satelliteCount > LARGE_SATELLITE_FLEET_THRESHOLD) {
             strengths.add("Large satellite fleet (" + satelliteCount + " satellites)");
         }
 
@@ -468,11 +471,11 @@ public class ComparisonService {
             weaknesses.add("No reusable rocket technology - higher launch costs");
         }
 
-        if (country.getOverallCapabilityScore() != null && country.getOverallCapabilityScore() < 30) {
+        if (country.getOverallCapabilityScore() != null && country.getOverallCapabilityScore() < LOW_CAPABILITY_SCORE) {
             weaknesses.add("Low overall capability score (" + country.getOverallCapabilityScore() + ")");
         }
 
-        if (country.getLaunchSuccessRate() != null && country.getLaunchSuccessRate() < 90) {
+        if (country.getLaunchSuccessRate() != null && country.getLaunchSuccessRate() < CONCERNING_SUCCESS_RATE) {
             weaknesses.add("Launch reliability concerns (" + country.getLaunchSuccessRate() + "% success rate)");
         }
 
@@ -482,7 +485,7 @@ public class ComparisonService {
         }
 
         if (country.getAnnualBudgetUsd() != null &&
-            country.getAnnualBudgetUsd().compareTo(new BigDecimal("500000000")) < 0) {
+            country.getAnnualBudgetUsd().compareTo(BigDecimal.valueOf(LIMITED_BUDGET_USD)) < 0) {
             weaknesses.add("Limited budget (< $500M annually)");
         }
 
@@ -519,7 +522,7 @@ public class ComparisonService {
             threats.add("Geopolitical risks affecting launch access");
         }
         if (country.getAnnualBudgetUsd() != null &&
-            country.getAnnualBudgetUsd().compareTo(new BigDecimal("1000000000")) < 0) {
+            country.getAnnualBudgetUsd().compareTo(BigDecimal.valueOf(BUDGET_CONSTRAINT_THRESHOLD_USD)) < 0) {
             threats.add("Budget constraints limiting program expansion");
         }
         threats.add("Talent retention in competitive global space industry");
@@ -687,12 +690,12 @@ public class ComparisonService {
 
     private String determineTier(Country country) {
         Double score = country.getOverallCapabilityScore();
-        if (score == null) return "Unranked";
-        if (score >= 80) return "Tier 1 - Space Superpower";
-        if (score >= 60) return "Tier 2 - Major Space Power";
-        if (score >= 40) return "Tier 3 - Established Space Nation";
-        if (score >= 20) return "Tier 4 - Emerging Space Nation";
-        return "Tier 5 - Developing Space Capability";
+        if (score == null) return TIER_UNRANKED;
+        if (score >= TIER_1_THRESHOLD) return TIER_1_NAME;
+        if (score >= TIER_2_THRESHOLD) return TIER_2_NAME;
+        if (score >= TIER_3_THRESHOLD) return TIER_3_NAME;
+        if (score >= TIER_4_THRESHOLD) return TIER_4_NAME;
+        return TIER_5_NAME;
     }
 
     private String determineTrajectory(Country country) {

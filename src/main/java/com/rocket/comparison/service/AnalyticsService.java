@@ -9,6 +9,8 @@ import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.rocket.comparison.constants.SpaceConstants.*;
+
 /**
  * Service providing analytics and trend analysis across space-related data.
  * Supports historical analysis, trend detection, and record tracking.
@@ -44,7 +46,7 @@ public class AnalyticsService {
                 countryData.put("countryName", country.getName());
                 countryData.put("isoCode", country.getIsoCode());
                 countryData.put("annualBudgetUsd", country.getAnnualBudgetUsd());
-                countryData.put("budgetYear", 2024); // Current snapshot year
+                countryData.put("budgetYear", CURRENT_BUDGET_YEAR);
 
                 // Calculate budget per capita if population data available
                 if (country.getOverallCapabilityScore() != null) {
@@ -67,8 +69,8 @@ public class AnalyticsService {
             .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
         result.put("totalGlobalBudgetUsd", totalGlobalBudget);
 
-        // Top 5 by budget
-        result.put("topByBudget", countryBudgets.stream().limit(5).toList());
+        // Top by budget
+        result.put("topByBudget", countryBudgets.stream().limit(DEFAULT_TOP_LIMIT).toList());
 
         return result;
     }
@@ -214,13 +216,12 @@ public class AnalyticsService {
         Map<String, Object> result = new LinkedHashMap<>();
 
         int currentYear = LocalDate.now().getYear();
-        int recentYearsThreshold = 10;
 
         List<Map<String, Object>> emergingNations = new ArrayList<>();
 
         countryRepository.findAll().forEach(country -> {
             // Skip top-tier nations
-            if (country.getOverallCapabilityScore() != null && country.getOverallCapabilityScore() > 70) {
+            if (country.getOverallCapabilityScore() != null && country.getOverallCapabilityScore() > TOP_TIER_SCORE_THRESHOLD) {
                 return;
             }
 
@@ -233,21 +234,21 @@ public class AnalyticsService {
             // Count recent missions
             List<SpaceMission> recentMissions = spaceMissionRepository.findByCountryIdOrderByLaunchDateDesc(country.getId())
                 .stream()
-                .filter(m -> m.getLaunchDate() != null && m.getLaunchDate().getYear() >= currentYear - recentYearsThreshold)
+                .filter(m -> m.getLaunchDate() != null && m.getLaunchDate().getYear() >= currentYear - EMERGING_NATIONS_YEARS_WINDOW)
                 .toList();
             nationData.put("recentMissions", recentMissions.size());
 
             // Count recent milestones
             List<SpaceMilestone> recentMilestones = spaceMilestoneRepository.findByCountryIdOrderByDateAchievedAsc(country.getId())
                 .stream()
-                .filter(m -> m.getDateAchieved() != null && m.getDateAchieved().getYear() >= currentYear - recentYearsThreshold)
+                .filter(m -> m.getDateAchieved() != null && m.getDateAchieved().getYear() >= currentYear - EMERGING_NATIONS_YEARS_WINDOW)
                 .toList();
             nationData.put("recentMilestones", recentMilestones.size());
 
             // Calculate emergence score (simple heuristic)
-            int emergenceScore = recentMissions.size() * 5 + recentMilestones.size() * 10;
+            int emergenceScore = recentMissions.size() * EMERGENCE_POINTS_PER_MISSION + recentMilestones.size() * EMERGENCE_POINTS_PER_MILESTONE;
             if (country.getIndependentLaunchCapable() != null && country.getIndependentLaunchCapable()) {
-                emergenceScore += 20;
+                emergenceScore += EMERGENCE_LAUNCH_CAPABILITY_BONUS;
             }
             nationData.put("emergenceScore", emergenceScore);
 
@@ -263,8 +264,8 @@ public class AnalyticsService {
             (Integer) a.get("emergenceScore")
         ));
 
-        result.put("emergingNations", emergingNations.stream().limit(10).toList());
-        result.put("analysisWindow", recentYearsThreshold + " years");
+        result.put("emergingNations", emergingNations.stream().limit(EMERGING_NATIONS_LIMIT).toList());
+        result.put("analysisWindow", EMERGING_NATIONS_YEARS_WINDOW + " years");
         result.put("totalEmerging", emergingNations.size());
 
         return result;
@@ -370,9 +371,9 @@ public class AnalyticsService {
                 "totalLaunches", c.getTotalLaunches()
             )));
 
-        // Highest success rate (min 10 launches)
+        // Highest success rate (min launches required)
         countryRepository.findAll().stream()
-            .filter(c -> c.getTotalLaunches() != null && c.getTotalLaunches() >= 10)
+            .filter(c -> c.getTotalLaunches() != null && c.getTotalLaunches() >= MIN_LAUNCHES_FOR_RANKING)
             .filter(c -> c.getLaunchSuccessRate() != null)
             .max(Comparator.comparing(Country::getLaunchSuccessRate))
             .ifPresent(c -> countryRecords.put("highestSuccessRate", Map.of(

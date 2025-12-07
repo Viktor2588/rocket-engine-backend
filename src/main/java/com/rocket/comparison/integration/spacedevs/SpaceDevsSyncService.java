@@ -12,6 +12,7 @@ import java.time.LocalDate;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
@@ -28,8 +29,8 @@ public class SpaceDevsSyncService {
     private final SpaceMissionRepository spaceMissionRepository;
     private final LaunchSiteRepository launchSiteRepository;
 
-    // Country code to Country entity cache
-    private Map<String, Country> countryCache = new HashMap<>();
+    // Country code to Country entity cache (thread-safe)
+    private final Map<String, Country> countryCache = new ConcurrentHashMap<>();
 
     /**
      * Full sync - fetches and updates all data types
