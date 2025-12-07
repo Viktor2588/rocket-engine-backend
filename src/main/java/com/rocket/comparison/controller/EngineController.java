@@ -23,11 +23,16 @@ public class EngineController {
     private final EngineService engineService;
 
     @GetMapping
-    public ResponseEntity<Page<Engine>> getAllEngines(
+    public ResponseEntity<?> getAllEngines(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "asc") String sortDir) {
+            @RequestParam(defaultValue = "asc") String sortDir,
+            @RequestParam(required = false) Boolean unpaged) {
+        // If unpaged=true, return simple list (for frontend compatibility)
+        if (Boolean.TRUE.equals(unpaged)) {
+            return ResponseEntity.ok(engineService.getAllEngines());
+        }
         Sort sort = sortDir.equalsIgnoreCase("desc")
             ? Sort.by(sortBy).descending()
             : Sort.by(sortBy).ascending();
@@ -35,7 +40,7 @@ public class EngineController {
         return ResponseEntity.ok(engineService.getAllEngines(pageable));
     }
 
-    @GetMapping("/all")
+    @GetMapping({"/all", "/list"})
     public ResponseEntity<List<Engine>> getAllEnginesUnpaged() {
         return ResponseEntity.ok(engineService.getAllEngines());
     }
