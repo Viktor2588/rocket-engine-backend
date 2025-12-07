@@ -685,6 +685,52 @@ public class DataSeeder implements CommandLineRunner {
         // Ukraine - Legacy from USSR
         seedCountryScores("UKR", 25.0, 50.0, 15.0, 10.0, 20.0, 15.0, 35.0);
 
+        // Additional countries (from TheSpaceDevs sync)
+        // France - Strong space power, part of ESA
+        seedCountryScores("FRA", 65.0, 60.0, 40.0, 55.0, 65.0, 55.0, 45.0);
+
+        // Germany - Strong aerospace industry
+        seedCountryScores("DEU", 45.0, 55.0, 25.0, 40.0, 55.0, 40.0, 35.0);
+
+        // Italy - Active ESA partner
+        seedCountryScores("ITA", 40.0, 45.0, 20.0, 35.0, 50.0, 35.0, 30.0);
+
+        // Australia - Emerging space nation
+        seedCountryScores("AUS", 20.0, 15.0, 5.0, 10.0, 30.0, 25.0, 20.0);
+
+        // Brazil - Developing launch capability
+        seedCountryScores("BRA", 25.0, 20.0, 5.0, 10.0, 25.0, 20.0, 30.0);
+
+        // Iran - Indigenous launch capability
+        seedCountryScores("IRN", 30.0, 25.0, 5.0, 5.0, 20.0, 15.0, 45.0);
+
+        // North Korea - Basic launch capability
+        seedCountryScores("PRK", 20.0, 15.0, 0.0, 0.0, 10.0, 10.0, 40.0);
+
+        // Spain - ESA member
+        seedCountryScores("ESP", 15.0, 20.0, 10.0, 15.0, 35.0, 20.0, 15.0);
+
+        // Netherlands - ESA member, ESTEC host
+        seedCountryScores("NLD", 10.0, 25.0, 15.0, 20.0, 35.0, 25.0, 15.0);
+
+        // Belgium - ESA member
+        seedCountryScores("BEL", 10.0, 15.0, 10.0, 15.0, 25.0, 15.0, 10.0);
+
+        // Sweden - Strong satellite industry
+        seedCountryScores("SWE", 15.0, 20.0, 10.0, 15.0, 40.0, 20.0, 20.0);
+
+        // Norway - Andøya launch site
+        seedCountryScores("NOR", 20.0, 15.0, 5.0, 10.0, 30.0, 25.0, 15.0);
+
+        // Switzerland - ESA member
+        seedCountryScores("CHE", 5.0, 15.0, 10.0, 15.0, 25.0, 15.0, 10.0);
+
+        // Austria - ESA member
+        seedCountryScores("AUT", 5.0, 10.0, 5.0, 10.0, 20.0, 10.0, 5.0);
+
+        // Poland - ESA member
+        seedCountryScores("POL", 5.0, 10.0, 5.0, 10.0, 20.0, 10.0, 10.0);
+
         log.info("Seeded {} capability scores", capabilityScoreRepository.count());
     }
 

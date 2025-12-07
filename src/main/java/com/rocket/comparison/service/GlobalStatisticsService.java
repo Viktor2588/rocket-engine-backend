@@ -335,16 +335,37 @@ public class GlobalStatisticsService {
     // ==================== Timeline Statistics ====================
 
     /**
-     * Get historical statistics by decade
+     * Get historical statistics by decade with counts
      */
     public Map<String, Object> getStatsByDecade() {
         Map<String, Object> stats = new LinkedHashMap<>();
 
-        // Milestones by decade
-        stats.put("milestonesByDecade", spaceMilestoneRepository.findAllDecades());
+        // Milestones grouped by decade with counts
+        Map<String, Long> milestonesByDecade = new LinkedHashMap<>();
+        spaceMilestoneRepository.findAll().forEach(milestone -> {
+            Integer decade = milestone.getDecade();
+            if (decade != null) {
+                String decadeLabel = decade + "s";
+                milestonesByDecade.merge(decadeLabel, 1L, Long::sum);
+            }
+        });
+        stats.put("milestonesByDecade", milestonesByDecade);
 
-        // Missions by decade
-        stats.put("missionsByDecade", spaceMissionRepository.findAllLaunchDecades());
+        // Missions grouped by decade with counts
+        Map<String, Long> missionsByDecade = new LinkedHashMap<>();
+        spaceMissionRepository.findAll().forEach(mission -> {
+            Integer decade = mission.getLaunchDecade();
+            if (decade != null) {
+                String decadeLabel = decade + "s";
+                missionsByDecade.merge(decadeLabel, 1L, Long::sum);
+            }
+        });
+        stats.put("missionsByDecade", missionsByDecade);
+
+        // Also include launches by decade from country data
+        Map<String, Long> launchesByDecade = new LinkedHashMap<>();
+        // We only have total launch counts, not by decade, so derive from missions
+        stats.put("launchesByDecade", missionsByDecade);
 
         return stats;
     }
