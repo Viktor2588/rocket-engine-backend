@@ -2,7 +2,12 @@ package com.rocket.comparison.controller;
 
 import com.rocket.comparison.entity.Engine;
 import com.rocket.comparison.service.EngineService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,7 +23,20 @@ public class EngineController {
     private final EngineService engineService;
 
     @GetMapping
-    public ResponseEntity<List<Engine>> getAllEngines() {
+    public ResponseEntity<Page<Engine>> getAllEngines(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir) {
+        Sort sort = sortDir.equalsIgnoreCase("desc")
+            ? Sort.by(sortBy).descending()
+            : Sort.by(sortBy).ascending();
+        Pageable pageable = PageRequest.of(page, Math.min(size, 100), sort);
+        return ResponseEntity.ok(engineService.getAllEngines(pageable));
+    }
+
+    @GetMapping("/all")
+    public ResponseEntity<List<Engine>> getAllEnginesUnpaged() {
         return ResponseEntity.ok(engineService.getAllEngines());
     }
 
@@ -30,13 +48,13 @@ public class EngineController {
     }
 
     @PostMapping
-    public ResponseEntity<Engine> createEngine(@RequestBody Engine engine) {
+    public ResponseEntity<Engine> createEngine(@Valid @RequestBody Engine engine) {
         Engine savedEngine = engineService.saveEngine(engine);
         return ResponseEntity.status(HttpStatus.CREATED).body(savedEngine);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Engine> updateEngine(@PathVariable Long id, @RequestBody Engine engineDetails) {
+    public ResponseEntity<Engine> updateEngine(@PathVariable Long id, @Valid @RequestBody Engine engineDetails) {
         try {
             Engine updatedEngine = engineService.updateEngine(id, engineDetails);
             return ResponseEntity.ok(updatedEngine);

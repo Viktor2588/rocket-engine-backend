@@ -27,4 +27,18 @@ public interface EngineRepository extends JpaRepository<Engine, Long> {
 
     @Query("SELECT COUNT(e) FROM Engine e WHERE e.country.id = :countryId")
     Long countByCountryId(@Param("countryId") Long countryId);
+
+    // Optimized analytics queries - aggregate at database level
+    @Query("SELECT e.propellant, COUNT(e) FROM Engine e GROUP BY e.propellant")
+    List<Object[]> countByPropellant();
+
+    @Query("SELECT e.powerCycle, COUNT(e) FROM Engine e GROUP BY e.powerCycle")
+    List<Object[]> countByPowerCycle();
+
+    // Records queries - get max values directly
+    @Query("SELECT e FROM Engine e WHERE e.thrustN = (SELECT MAX(e2.thrustN) FROM Engine e2 WHERE e2.thrustN IS NOT NULL)")
+    List<Engine> findEngineWithHighestThrust();
+
+    @Query("SELECT e FROM Engine e WHERE e.isp_s = (SELECT MAX(e2.isp_s) FROM Engine e2 WHERE e2.isp_s IS NOT NULL)")
+    List<Engine> findEngineWithHighestIsp();
 }

@@ -3,6 +3,8 @@ package com.rocket.comparison.service;
 import com.rocket.comparison.entity.Country;
 import com.rocket.comparison.repository.CountryRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -17,6 +19,10 @@ public class CountryService {
     // Basic CRUD operations
     public List<Country> getAllCountries() {
         return countryRepository.findAll();
+    }
+
+    public Page<Country> getAllCountries(Pageable pageable) {
+        return countryRepository.findAll(pageable);
     }
 
     public Optional<Country> getCountryById(Long id) {

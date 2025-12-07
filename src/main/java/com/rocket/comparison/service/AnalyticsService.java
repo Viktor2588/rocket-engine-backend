@@ -31,16 +31,16 @@ public class AnalyticsService {
 
     /**
      * Get space budget trends by country
+     * Optimized: Uses database-level filtering and sorting
      */
     public Map<String, Object> getBudgetTrends() {
         Map<String, Object> result = new LinkedHashMap<>();
 
-        List<Map<String, Object>> countryBudgets = new ArrayList<>();
+        // Use optimized query instead of loading all countries
+        List<Country> countriesWithBudget = countryRepository.findCountriesWithBudgetOrderByBudgetDesc();
 
-        countryRepository.findAll().stream()
-            .filter(c -> c.getAnnualBudgetUsd() != null && c.getAnnualBudgetUsd().compareTo(java.math.BigDecimal.ZERO) > 0)
-            .sorted((a, b) -> b.getAnnualBudgetUsd().compareTo(a.getAnnualBudgetUsd()))
-            .forEach(country -> {
+        List<Map<String, Object>> countryBudgets = countriesWithBudget.stream()
+            .map(country -> {
                 Map<String, Object> countryData = new LinkedHashMap<>();
                 countryData.put("countryId", country.getId());
                 countryData.put("countryName", country.getName());
@@ -48,17 +48,16 @@ public class AnalyticsService {
                 countryData.put("annualBudgetUsd", country.getAnnualBudgetUsd());
                 countryData.put("budgetYear", CURRENT_BUDGET_YEAR);
 
-                // Calculate budget per capita if population data available
                 if (country.getOverallCapabilityScore() != null) {
                     countryData.put("capabilityScore", country.getOverallCapabilityScore());
                 }
 
-                // Add launch statistics
                 countryData.put("totalLaunches", country.getTotalLaunches());
                 countryData.put("successRate", country.getLaunchSuccessRate());
 
-                countryBudgets.add(countryData);
-            });
+                return countryData;
+            })
+            .toList();
 
         result.put("countries", countryBudgets);
         result.put("totalCountries", countryBudgets.size());
@@ -275,23 +274,26 @@ public class AnalyticsService {
 
     /**
      * Analyze technology trends in propulsion and space systems
+     * Optimized: Uses database-level aggregation instead of loading all entities
      */
     public Map<String, Object> getTechnologyTrends() {
         Map<String, Object> result = new LinkedHashMap<>();
 
-        // Propellant trends
+        // Propellant trends - optimized with database aggregation
         Map<String, Long> propellantUsage = new LinkedHashMap<>();
-        engineRepository.findAll().forEach(engine -> {
-            String propellant = engine.getPropellant() != null ? engine.getPropellant() : "Unknown";
-            propellantUsage.merge(propellant, 1L, Long::sum);
+        engineRepository.countByPropellant().forEach(row -> {
+            String propellant = row[0] != null ? (String) row[0] : "Unknown";
+            Long count = (Long) row[1];
+            propellantUsage.put(propellant, count);
         });
         result.put("propellantDistribution", propellantUsage);
 
-        // Power cycle trends
+        // Power cycle trends - optimized with database aggregation
         Map<String, Long> cycleUsage = new LinkedHashMap<>();
-        engineRepository.findAll().forEach(engine -> {
-            String cycle = engine.getPowerCycle() != null ? engine.getPowerCycle() : "Unknown";
-            cycleUsage.merge(cycle, 1L, Long::sum);
+        engineRepository.countByPowerCycle().forEach(row -> {
+            String cycle = row[0] != null ? (String) row[0] : "Unknown";
+            Long count = (Long) row[1];
+            cycleUsage.put(cycle, count);
         });
         result.put("powerCycleDistribution", cycleUsage);
 
@@ -331,13 +333,12 @@ public class AnalyticsService {
     public Map<String, Object> getRecords() {
         Map<String, Object> records = new LinkedHashMap<>();
 
-        // Engine records
+        // Engine records - optimized with direct database queries
         Map<String, Object> engineRecords = new LinkedHashMap<>();
 
-        // Highest thrust
-        engineRepository.findAll().stream()
-            .filter(e -> e.getThrustN() != null)
-            .max(Comparator.comparing(Engine::getThrustN))
+        // Highest thrust - optimized query
+        engineRepository.findEngineWithHighestThrust().stream()
+            .findFirst()
             .ifPresent(e -> engineRecords.put("highestThrust", Map.of(
                 "engineId", e.getId(),
                 "engineName", e.getName(),
@@ -345,10 +346,9 @@ public class AnalyticsService {
                 "country", e.getCountry() != null ? e.getCountry().getName() : e.getOrigin()
             )));
 
-        // Highest ISP
-        engineRepository.findAll().stream()
-            .filter(e -> e.getIsp_s() != null)
-            .max(Comparator.comparing(Engine::getIsp_s))
+        // Highest ISP - optimized query
+        engineRepository.findEngineWithHighestIsp().stream()
+            .findFirst()
             .ifPresent(e -> engineRecords.put("highestIsp", Map.of(
                 "engineId", e.getId(),
                 "engineName", e.getName(),

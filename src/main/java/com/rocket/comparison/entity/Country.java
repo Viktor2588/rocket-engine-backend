@@ -1,6 +1,7 @@
 package com.rocket.comparison.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -12,7 +13,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "countries")
+@Table(name = "countries", indexes = {
+    @Index(name = "idx_country_region", columnList = "region"),
+    @Index(name = "idx_country_iso_code", columnList = "isoCode"),
+    @Index(name = "idx_country_capability_score", columnList = "overallCapabilityScore"),
+    @Index(name = "idx_country_human_spaceflight", columnList = "humanSpaceflightCapable"),
+    @Index(name = "idx_country_launch_capable", columnList = "independentLaunchCapable")
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -22,9 +29,13 @@ public class Country {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotBlank(message = "Country name is required")
+    @Size(max = 100, message = "Country name cannot exceed 100 characters")
     @Column(nullable = false, unique = true)
     private String name;                    // "United States"
 
+    @NotBlank(message = "ISO code is required")
+    @Size(min = 2, max = 3, message = "ISO code must be 2-3 characters")
     @Column(nullable = false, unique = true, length = 3)
     private String isoCode;                 // "USA"
 
@@ -49,9 +60,11 @@ public class Country {
     private Double budgetAsPercentOfGdp;
 
     // Launch Statistics
+    @Min(value = 0, message = "Total launches cannot be negative")
     @Column
     private Integer totalLaunches;
 
+    @Min(value = 0, message = "Successful launches cannot be negative")
     @Column
     private Integer successfulLaunches;
 

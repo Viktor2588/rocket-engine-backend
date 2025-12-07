@@ -48,4 +48,12 @@ public interface CountryRepository extends JpaRepository<Country, Long> {
 
     @Query("SELECT c FROM Country c WHERE c.launchSuccessRate IS NOT NULL ORDER BY c.launchSuccessRate DESC")
     List<Country> findTopBySuccessRate();
+
+    // Optimized budget analytics query
+    @Query("SELECT c FROM Country c WHERE c.annualBudgetUsd IS NOT NULL AND c.annualBudgetUsd > 0 ORDER BY c.annualBudgetUsd DESC")
+    List<Country> findCountriesWithBudgetOrderByBudgetDesc();
+
+    // Optimized query for emerging nations - exclude high scorers
+    @Query("SELECT c FROM Country c WHERE c.overallCapabilityScore IS NULL OR c.overallCapabilityScore <= :threshold")
+    List<Country> findPotentialEmergingNations(@Param("threshold") Double threshold);
 }

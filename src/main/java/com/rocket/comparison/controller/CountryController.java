@@ -2,7 +2,12 @@ package com.rocket.comparison.controller;
 
 import com.rocket.comparison.entity.Country;
 import com.rocket.comparison.service.CountryService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,7 +27,20 @@ public class CountryController {
     // ==================== Basic CRUD ====================
 
     @GetMapping
-    public ResponseEntity<List<Country>> getAllCountries() {
+    public ResponseEntity<Page<Country>> getAllCountries(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "name") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir) {
+        Sort sort = sortDir.equalsIgnoreCase("desc")
+            ? Sort.by(sortBy).descending()
+            : Sort.by(sortBy).ascending();
+        Pageable pageable = PageRequest.of(page, Math.min(size, 100), sort);
+        return ResponseEntity.ok(countryService.getAllCountries(pageable));
+    }
+
+    @GetMapping("/all")
+    public ResponseEntity<List<Country>> getAllCountriesUnpaged() {
         return ResponseEntity.ok(countryService.getAllCountries());
     }
 
@@ -48,7 +66,7 @@ public class CountryController {
     }
 
     @PostMapping
-    public ResponseEntity<Country> createCountry(@RequestBody Country country) {
+    public ResponseEntity<Country> createCountry(@Valid @RequestBody Country country) {
         // Check for duplicate ISO code
         if (country.getIsoCode() != null && countryService.existsByIsoCode(country.getIsoCode())) {
             return ResponseEntity.status(HttpStatus.CONFLICT).build();
@@ -58,7 +76,7 @@ public class CountryController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Country> updateCountry(@PathVariable Long id, @RequestBody Country countryDetails) {
+    public ResponseEntity<Country> updateCountry(@PathVariable Long id, @Valid @RequestBody Country countryDetails) {
         try {
             Country updatedCountry = countryService.updateCountry(id, countryDetails);
             return ResponseEntity.ok(updatedCountry);

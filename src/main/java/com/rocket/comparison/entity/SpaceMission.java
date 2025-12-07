@@ -1,6 +1,7 @@
 package com.rocket.comparison.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -14,7 +15,14 @@ import java.time.LocalDate;
  * crew information, objectives, and outcomes.
  */
 @Entity
-@Table(name = "space_missions")
+@Table(name = "space_missions", indexes = {
+    @Index(name = "idx_mission_country_id", columnList = "country_id"),
+    @Index(name = "idx_mission_launch_date", columnList = "launchDate"),
+    @Index(name = "idx_mission_launch_year", columnList = "launchYear"),
+    @Index(name = "idx_mission_status", columnList = "status"),
+    @Index(name = "idx_mission_type", columnList = "missionType"),
+    @Index(name = "idx_mission_destination", columnList = "destination")
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -27,6 +35,8 @@ public class SpaceMission {
     /**
      * Mission name (e.g., "Apollo 11", "Voyager 1")
      */
+    @NotBlank(message = "Mission name is required")
+    @Size(max = 200, message = "Mission name cannot exceed 200 characters")
     @Column(nullable = false)
     private String name;
 
@@ -45,9 +55,10 @@ public class SpaceMission {
     /**
      * Country that conducted the mission
      */
-    @ManyToOne(fetch = FetchType.EAGER)
+    @NotNull(message = "Country is required for mission")
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "country_id", nullable = false)
-    @JsonIgnoreProperties({"engines", "description"})
+    @JsonIgnoreProperties({"engines", "description", "hibernateLazyInitializer", "handler"})
     private Country country;
 
     /**

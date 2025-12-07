@@ -3,6 +3,8 @@ package com.rocket.comparison.service;
 import com.rocket.comparison.entity.Engine;
 import com.rocket.comparison.repository.EngineRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -16,6 +18,10 @@ public class EngineService {
 
     public List<Engine> getAllEngines() {
         return engineRepository.findAll();
+    }
+
+    public Page<Engine> getAllEngines(Pageable pageable) {
+        return engineRepository.findAll(pageable);
     }
 
     public Optional<Engine> getEngineById(Long id) {

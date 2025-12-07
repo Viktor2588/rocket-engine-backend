@@ -1,6 +1,7 @@
 package com.rocket.comparison.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -12,7 +13,13 @@ import java.math.BigDecimal;
  * Represents a launch vehicle (rocket) used for space launches.
  */
 @Entity
-@Table(name = "launch_vehicles")
+@Table(name = "launch_vehicles", indexes = {
+    @Index(name = "idx_lv_country_id", columnList = "country_id"),
+    @Index(name = "idx_lv_manufacturer", columnList = "manufacturer"),
+    @Index(name = "idx_lv_status", columnList = "status"),
+    @Index(name = "idx_lv_reusable", columnList = "reusable"),
+    @Index(name = "idx_lv_human_rated", columnList = "humanRated")
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -22,6 +29,8 @@ public class LaunchVehicle {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotBlank(message = "Launch vehicle name is required")
+    @Size(max = 100, message = "Launch vehicle name cannot exceed 100 characters")
     @Column(nullable = false)
     private String name;
 
@@ -34,9 +43,9 @@ public class LaunchVehicle {
     @Column
     private String fullName;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "country_id")
-    @JsonIgnoreProperties({"engines", "description"})
+    @JsonIgnoreProperties({"engines", "description", "hibernateLazyInitializer", "handler"})
     private Country country;
 
     @Column

@@ -1,6 +1,7 @@
 package com.rocket.comparison.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -14,7 +15,13 @@ import java.time.LocalDateTime;
  */
 @Entity
 @Table(name = "capability_scores",
-       uniqueConstraints = @UniqueConstraint(columnNames = {"country_id", "category"}))
+       uniqueConstraints = @UniqueConstraint(columnNames = {"country_id", "category"}),
+       indexes = {
+           @Index(name = "idx_capability_country_id", columnList = "country_id"),
+           @Index(name = "idx_capability_category", columnList = "category"),
+           @Index(name = "idx_capability_score", columnList = "score"),
+           @Index(name = "idx_capability_ranking", columnList = "ranking")
+       })
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -24,9 +31,10 @@ public class CapabilityScore {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @NotNull(message = "Country is required for capability score")
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "country_id", nullable = false)
-    @JsonIgnoreProperties({"engines", "description"})
+    @JsonIgnoreProperties({"engines", "description", "hibernateLazyInitializer", "handler"})
     private Country country;
 
     @Enumerated(EnumType.STRING)
@@ -36,12 +44,16 @@ public class CapabilityScore {
     /**
      * Score for this category (0-100)
      */
+    @NotNull(message = "Score is required")
+    @Min(value = 0, message = "Score cannot be negative")
+    @Max(value = 100, message = "Score cannot exceed 100")
     @Column(nullable = false)
     private Double score;
 
     /**
      * Global rank in this category (1 = best)
      */
+    @Min(value = 1, message = "Ranking must be at least 1")
     @Column
     private Integer ranking;
 

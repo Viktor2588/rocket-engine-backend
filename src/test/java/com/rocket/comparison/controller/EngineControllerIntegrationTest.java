@@ -82,15 +82,17 @@ public class EngineControllerIntegrationTest {
         engineRepository.save(thirdEngine);
     }
 
-    // ==================== GET All Engines ====================
+    // ==================== GET All Engines (Paginated) ====================
     @Test
     public void testGetAllEngines_Success() throws Exception {
         mockMvc.perform(get("/api/engines"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(3)))
-                .andExpect(jsonPath("$[0].name", is("Merlin 1D")))
-                .andExpect(jsonPath("$[1].name", is("BE-4")))
-                .andExpect(jsonPath("$[2].name", is("RS-25")));
+                .andExpect(jsonPath("$.content", hasSize(3)))
+                .andExpect(jsonPath("$.content[0].name", is("Merlin 1D")))
+                .andExpect(jsonPath("$.content[1].name", is("BE-4")))
+                .andExpect(jsonPath("$.content[2].name", is("RS-25")))
+                .andExpect(jsonPath("$.totalElements", is(3)))
+                .andExpect(jsonPath("$.totalPages", is(1)));
     }
 
     @Test
@@ -99,7 +101,17 @@ public class EngineControllerIntegrationTest {
 
         mockMvc.perform(get("/api/engines"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(0)));
+                .andExpect(jsonPath("$.content", hasSize(0)))
+                .andExpect(jsonPath("$.totalElements", is(0)));
+    }
+
+    // ==================== GET All Engines (Unpaged) ====================
+    @Test
+    public void testGetAllEnginesUnpaged_Success() throws Exception {
+        mockMvc.perform(get("/api/engines/all"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(3)))
+                .andExpect(jsonPath("$[0].name", is("Merlin 1D")));
     }
 
     // ==================== GET Engine by ID ====================

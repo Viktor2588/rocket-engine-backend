@@ -1,6 +1,7 @@
 package com.rocket.comparison.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -10,7 +11,11 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
  * Represents a rocket launch site/spaceport.
  */
 @Entity
-@Table(name = "launch_sites")
+@Table(name = "launch_sites", indexes = {
+    @Index(name = "idx_launch_site_country_id", columnList = "country_id"),
+    @Index(name = "idx_launch_site_status", columnList = "status"),
+    @Index(name = "idx_launch_site_human_rated", columnList = "humanRatedCapable")
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -23,6 +28,8 @@ public class LaunchSite {
     /**
      * Full name of the launch site
      */
+    @NotBlank(message = "Launch site name is required")
+    @Size(max = 150, message = "Launch site name cannot exceed 150 characters")
     @Column(nullable = false)
     private String name;
 
@@ -41,9 +48,10 @@ public class LaunchSite {
     /**
      * Country where launch site is located
      */
-    @ManyToOne(fetch = FetchType.EAGER)
+    @NotNull(message = "Country is required for launch site")
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "country_id", nullable = false)
-    @JsonIgnoreProperties({"engines", "description"})
+    @JsonIgnoreProperties({"engines", "description", "hibernateLazyInitializer", "handler"})
     private Country country;
 
     /**
