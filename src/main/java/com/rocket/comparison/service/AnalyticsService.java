@@ -25,6 +25,54 @@ public class AnalyticsService {
     private final SpaceMilestoneRepository spaceMilestoneRepository;
     private final CapabilityScoreRepository capabilityScoreRepository;
 
+    // ==================== Budget Analytics ====================
+
+    /**
+     * Get space budget trends by country
+     */
+    public Map<String, Object> getBudgetTrends() {
+        Map<String, Object> result = new LinkedHashMap<>();
+
+        List<Map<String, Object>> countryBudgets = new ArrayList<>();
+
+        countryRepository.findAll().stream()
+            .filter(c -> c.getAnnualBudgetUsd() != null && c.getAnnualBudgetUsd().compareTo(java.math.BigDecimal.ZERO) > 0)
+            .sorted((a, b) -> b.getAnnualBudgetUsd().compareTo(a.getAnnualBudgetUsd()))
+            .forEach(country -> {
+                Map<String, Object> countryData = new LinkedHashMap<>();
+                countryData.put("countryId", country.getId());
+                countryData.put("countryName", country.getName());
+                countryData.put("isoCode", country.getIsoCode());
+                countryData.put("annualBudgetUsd", country.getAnnualBudgetUsd());
+                countryData.put("budgetYear", 2024); // Current snapshot year
+
+                // Calculate budget per capita if population data available
+                if (country.getOverallCapabilityScore() != null) {
+                    countryData.put("capabilityScore", country.getOverallCapabilityScore());
+                }
+
+                // Add launch statistics
+                countryData.put("totalLaunches", country.getTotalLaunches());
+                countryData.put("successRate", country.getLaunchSuccessRate());
+
+                countryBudgets.add(countryData);
+            });
+
+        result.put("countries", countryBudgets);
+        result.put("totalCountries", countryBudgets.size());
+
+        // Calculate global totals
+        java.math.BigDecimal totalGlobalBudget = countryBudgets.stream()
+            .map(c -> (java.math.BigDecimal) c.get("annualBudgetUsd"))
+            .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+        result.put("totalGlobalBudgetUsd", totalGlobalBudget);
+
+        // Top 5 by budget
+        result.put("topByBudget", countryBudgets.stream().limit(5).toList());
+
+        return result;
+    }
+
     // ==================== Launch Analytics ====================
 
     /**

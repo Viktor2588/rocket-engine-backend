@@ -38,6 +38,17 @@ public class AnalyticsController {
         return ResponseEntity.ok(analyticsService.getLaunchesPerYearByCountry());
     }
 
+    // ==================== Budget Analytics ====================
+
+    /**
+     * Get space budget trends by country
+     * Returns: Budget data for countries with space programs
+     */
+    @GetMapping("/budget-trends")
+    public ResponseEntity<Map<String, Object>> getBudgetTrends() {
+        return ResponseEntity.ok(analyticsService.getBudgetTrends());
+    }
+
     // ==================== Capability Analysis ====================
 
     /**
