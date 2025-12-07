@@ -58,7 +58,7 @@ public class LaunchVehicleController {
         return launchVehicleService.findByPayloadCapacity();
     }
 
-    @GetMapping("/stats")
+    @GetMapping({"/stats", "/statistics"})
     public ResponseEntity<Map<String, Object>> getStats() {
         return ResponseEntity.ok(Map.of(
             "total", launchVehicleService.count(),
