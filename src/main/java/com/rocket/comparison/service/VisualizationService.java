@@ -199,6 +199,18 @@ public class VisualizationService {
     // ==================== Chart Data ====================
 
     /**
+     * Get radar chart data for all countries (default view)
+     */
+    public Map<String, Object> getAllCountriesCapabilityRadarData() {
+        List<Long> topCountryIds = countryRepository.findAllOrderByCapabilityScoreDesc().stream()
+                .filter(c -> c.getOverallCapabilityScore() != null && c.getOverallCapabilityScore() > 0)
+                .limit(6)
+                .map(Country::getId)
+                .toList();
+        return getCapabilityRadarData(topCountryIds);
+    }
+
+    /**
      * Get radar chart data for country capability comparison
      */
     public Map<String, Object> getCapabilityRadarData(List<Long> countryIds) {

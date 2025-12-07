@@ -27,11 +27,16 @@ public class CountryController {
     // ==================== Basic CRUD ====================
 
     @GetMapping
-    public ResponseEntity<Page<Country>> getAllCountries(
+    public ResponseEntity<?> getAllCountries(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "name") String sortBy,
-            @RequestParam(defaultValue = "asc") String sortDir) {
+            @RequestParam(defaultValue = "asc") String sortDir,
+            @RequestParam(required = false) Boolean unpaged) {
+        // If unpaged=true, return simple list (for frontend compatibility)
+        if (Boolean.TRUE.equals(unpaged)) {
+            return ResponseEntity.ok(countryService.getAllCountries());
+        }
         Sort sort = sortDir.equalsIgnoreCase("desc")
             ? Sort.by(sortBy).descending()
             : Sort.by(sortBy).ascending();
@@ -39,7 +44,7 @@ public class CountryController {
         return ResponseEntity.ok(countryService.getAllCountries(pageable));
     }
 
-    @GetMapping("/all")
+    @GetMapping({"/all", "/list"})
     public ResponseEntity<List<Country>> getAllCountriesUnpaged() {
         return ResponseEntity.ok(countryService.getAllCountries());
     }

@@ -69,9 +69,12 @@ public class VisualizationController {
      * Get radar chart data for capability comparison
      * Returns: category scores for selected countries in radar chart format
      */
-    @GetMapping("/charts/capability-radar")
+    @GetMapping({"/charts/capability-radar", "/radar-country-capabilities"})
     public ResponseEntity<Map<String, Object>> getCapabilityRadarData(
-            @RequestParam List<Long> countries) {
+            @RequestParam(required = false) List<Long> countries) {
+        if (countries == null || countries.isEmpty()) {
+            return ResponseEntity.ok(visualizationService.getAllCountriesCapabilityRadarData());
+        }
         return ResponseEntity.ok(visualizationService.getCapabilityRadarData(countries));
     }
 
@@ -79,7 +82,7 @@ public class VisualizationController {
      * Get engine comparison bubble chart data
      * Returns: engines with thrust vs ISP for bubble chart (size = thrust)
      */
-    @GetMapping("/charts/engine-bubble")
+    @GetMapping({"/charts/engine-bubble", "/bubble-engine-performance"})
     public ResponseEntity<List<Map<String, Object>>> getEngineBubbleChartData() {
         return ResponseEntity.ok(visualizationService.getEngineBubbleChartData());
     }
