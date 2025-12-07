@@ -6,17 +6,18 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class CountryService {
 
     private final CountryRepository countryRepository;
 
-    // Basic CRUD operations
     public List<Country> getAllCountries() {
         return countryRepository.findAll();
     }
@@ -37,6 +38,7 @@ public class CountryService {
         return countryRepository.findByName(name);
     }
 
+    @Transactional
     public Country saveCountry(Country country) {
         // Ensure ISO code is uppercase
         if (country.getIsoCode() != null) {
@@ -49,10 +51,12 @@ public class CountryService {
         return countryRepository.save(country);
     }
 
+    @Transactional
     public void deleteCountry(Long id) {
         countryRepository.deleteById(id);
     }
 
+    @Transactional
     public Country updateCountry(Long id, Country countryDetails) {
         Country country = countryRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Country not found with id: " + id));

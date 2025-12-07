@@ -4,6 +4,7 @@ import com.rocket.comparison.entity.*;
 import com.rocket.comparison.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.*;
@@ -17,6 +18,7 @@ import static com.rocket.comparison.constants.SpaceConstants.*;
  */
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class AnalyticsService {
 
     private final CountryRepository countryRepository;
