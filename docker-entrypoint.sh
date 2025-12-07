@@ -30,22 +30,67 @@ fi
 
 # Check if database is empty by trying to get engines
 echo "Checking database status..."
-response=$(curl -s http://localhost:8080/api/engines 2>/dev/null || echo "[]")
+engines_response=$(curl -s http://localhost:8080/api/engines 2>/dev/null || echo "[]")
+countries_response=$(curl -s http://localhost:8080/api/countries 2>/dev/null || echo "[]")
 
-# If response is empty array, seed the database
-if [ "$response" = "[]" ]; then
-    echo "📦 Database is empty, seeding with rocket engines..."
-
-    # Make script executable just in case
+# Seed engines if empty
+if [ "$engines_response" = "[]" ]; then
+    echo "📦 Seeding engines..."
     chmod +x /app/scripts/seed-34-engines.sh
-
-    # Run seed script
     bash /app/scripts/seed-34-engines.sh
-
-    echo "✅ Seeding completed!"
+    echo "✅ Engines seeded!"
 else
-    echo "✅ Database already contains data, skipping seed..."
+    echo "✅ Engines already exist, skipping..."
 fi
+
+# Seed countries if empty
+if [ "$countries_response" = "[]" ]; then
+    echo "🌍 Seeding countries..."
+    chmod +x /app/scripts/seed-countries.sh
+    bash /app/scripts/seed-countries.sh
+
+    echo "🇪🇺 Seeding European countries..."
+    chmod +x /app/scripts/seed-european-countries.sh
+    bash /app/scripts/seed-european-countries.sh
+    echo "✅ Countries seeded!"
+else
+    echo "✅ Countries already exist, skipping..."
+fi
+
+# Seed other entities if countries exist but milestones don't
+milestones_response=$(curl -s http://localhost:8080/api/milestones 2>/dev/null || echo "[]")
+if [ "$milestones_response" = "[]" ] && [ "$countries_response" != "[]" ]; then
+    echo "🏆 Seeding milestones..."
+    chmod +x /app/scripts/seed-milestones.sh
+    bash /app/scripts/seed-milestones.sh
+    echo "✅ Milestones seeded!"
+fi
+
+missions_response=$(curl -s http://localhost:8080/api/missions 2>/dev/null || echo "[]")
+if [ "$missions_response" = "[]" ] && [ "$countries_response" != "[]" ]; then
+    echo "🛸 Seeding missions..."
+    chmod +x /app/scripts/seed-missions.sh
+    bash /app/scripts/seed-missions.sh
+    echo "✅ Missions seeded!"
+fi
+
+satellites_response=$(curl -s http://localhost:8080/api/satellites 2>/dev/null || echo "[]")
+if [ "$satellites_response" = "[]" ] && [ "$countries_response" != "[]" ]; then
+    echo "🛰️ Seeding satellites..."
+    chmod +x /app/scripts/seed-satellites.sh
+    bash /app/scripts/seed-satellites.sh
+    echo "✅ Satellites seeded!"
+fi
+
+launch_sites_response=$(curl -s http://localhost:8080/api/launch-sites 2>/dev/null || echo "[]")
+if [ "$launch_sites_response" = "[]" ] && [ "$countries_response" != "[]" ]; then
+    echo "🏗️ Seeding launch sites..."
+    chmod +x /app/scripts/seed-launch-sites.sh
+    bash /app/scripts/seed-launch-sites.sh
+    echo "✅ Launch sites seeded!"
+fi
+
+echo "✅ All seeding completed!"
 
 echo "🚀 Application startup complete!"
 
