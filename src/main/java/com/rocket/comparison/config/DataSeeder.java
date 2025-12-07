@@ -29,6 +29,7 @@ public class DataSeeder implements CommandLineRunner {
     private final SpaceMissionRepository spaceMissionRepository;
     private final SatelliteRepository satelliteRepository;
     private final LaunchSiteRepository launchSiteRepository;
+    private final CapabilityScoreRepository capabilityScoreRepository;
 
     private Map<String, Country> countryMap = new HashMap<>();
 
@@ -74,6 +75,11 @@ public class DataSeeder implements CommandLineRunner {
         if (launchSiteRepository.count() == 0) {
             log.info("Seeding launch sites...");
             seedLaunchSites();
+        }
+
+        if (capabilityScoreRepository.count() == 0) {
+            log.info("Seeding capability scores...");
+            seedCapabilityScores();
         }
 
         log.info("Database check completed!");
@@ -638,5 +644,79 @@ public class DataSeeder implements CommandLineRunner {
         site.setTotalLaunches(totalLaunches);
         site.setDescription(description);
         launchSiteRepository.save(site);
+    }
+
+    private void seedCapabilityScores() {
+        log.info("Seeding capability scores...");
+
+        // USA - Global leader in all categories
+        seedCountryScores("USA", 98.0, 95.0, 97.0, 96.0, 98.0, 95.0, 98.0);
+
+        // Russia - Strong legacy, declining but capable
+        seedCountryScores("RUS", 82.0, 85.0, 88.0, 45.0, 65.0, 78.0, 85.0);
+
+        // China - Rapidly advancing
+        seedCountryScores("CHN", 85.0, 75.0, 82.0, 70.0, 78.0, 80.0, 90.0);
+
+        // ESA - Strong collaborative program
+        seedCountryScores("ESA", 72.0, 70.0, 55.0, 68.0, 75.0, 65.0, 50.0);
+
+        // Japan - Sophisticated but small
+        seedCountryScores("JPN", 68.0, 65.0, 45.0, 72.0, 70.0, 60.0, 70.0);
+
+        // India - Cost-effective, growing
+        seedCountryScores("IND", 62.0, 55.0, 30.0, 60.0, 55.0, 50.0, 75.0);
+
+        // South Korea - New entrant
+        seedCountryScores("KOR", 35.0, 30.0, 5.0, 20.0, 35.0, 25.0, 40.0);
+
+        // Israel - Small but capable
+        seedCountryScores("ISR", 32.0, 25.0, 5.0, 15.0, 45.0, 20.0, 50.0);
+
+        // UK - ESA member, limited independent
+        seedCountryScores("GBR", 15.0, 25.0, 10.0, 20.0, 40.0, 15.0, 20.0);
+
+        // Canada - Partner, specialized in robotics
+        seedCountryScores("CAN", 5.0, 10.0, 35.0, 20.0, 45.0, 10.0, 15.0);
+
+        // New Zealand - Rocket Lab base
+        seedCountryScores("NZL", 45.0, 40.0, 0.0, 15.0, 20.0, 35.0, 30.0);
+
+        // Ukraine - Legacy from USSR
+        seedCountryScores("UKR", 25.0, 50.0, 15.0, 10.0, 20.0, 15.0, 35.0);
+
+        log.info("Seeded {} capability scores", capabilityScoreRepository.count());
+    }
+
+    private void seedCountryScores(String isoCode, double launch, double propulsion, double human,
+            double deepSpace, double satellite, double infrastructure, double independence) {
+        Country country = countryMap.get(isoCode);
+        if (country == null) {
+            log.warn("Country not found for ISO code: {}", isoCode);
+            return;
+        }
+
+        CapabilityCategory[] categories = CapabilityCategory.values();
+        double[] scores = {launch, propulsion, human, deepSpace, satellite, infrastructure, independence};
+
+        for (int i = 0; i < categories.length; i++) {
+            CapabilityScore score = new CapabilityScore(country, categories[i], scores[i]);
+            score.setRanking(calculateRanking(categories[i], scores[i]));
+            capabilityScoreRepository.save(score);
+        }
+    }
+
+    private int calculateRanking(CapabilityCategory category, double score) {
+        // Simplified ranking based on score thresholds
+        if (score >= 90) return 1;
+        if (score >= 80) return 2;
+        if (score >= 70) return 3;
+        if (score >= 60) return 4;
+        if (score >= 50) return 5;
+        if (score >= 40) return 6;
+        if (score >= 30) return 7;
+        if (score >= 20) return 8;
+        if (score >= 10) return 9;
+        return 10;
     }
 }
