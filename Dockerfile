@@ -8,8 +8,8 @@ RUN ./gradlew clean build -x test
 FROM eclipse-temurin:17-jre
 WORKDIR /app
 
-# Install curl and bash for entrypoint script
-RUN apt-get update && apt-get install -y curl bash && rm -rf /var/lib/apt/lists/*
+# Install curl, bash, and jq for entrypoint and seeding scripts
+RUN apt-get update && apt-get install -y curl bash jq && rm -rf /var/lib/apt/lists/*
 
 # Copy application JAR
 COPY --from=builder /build/build/libs/*.jar app.jar
