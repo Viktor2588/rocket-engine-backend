@@ -1,10 +1,12 @@
 package com.rocket.comparison.config;
 
 import com.rocket.comparison.entity.*;
+import com.rocket.comparison.integration.spacedevs.SpaceDevsSyncService;
 import com.rocket.comparison.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +22,7 @@ import java.util.Map;
 @Component
 @RequiredArgsConstructor
 @Slf4j
+@Order(1)  // Run before other CommandLineRunners
 public class DataSeeder implements CommandLineRunner {
 
     private final CountryRepository countryRepository;
@@ -30,6 +33,7 @@ public class DataSeeder implements CommandLineRunner {
     private final SatelliteRepository satelliteRepository;
     private final LaunchSiteRepository launchSiteRepository;
     private final CapabilityScoreRepository capabilityScoreRepository;
+    private final SpaceDevsSyncService spaceDevsSyncService;
 
     private Map<String, Country> countryMap = new HashMap<>();
 
@@ -92,6 +96,32 @@ public class DataSeeder implements CommandLineRunner {
             satelliteRepository.count(),
             launchSiteRepository.count()
         );
+
+        // Sync real data from TheSpaceDevs API after seeding
+        syncFromExternalApi();
+    }
+
+    /**
+     * Syncs additional data from TheSpaceDevs API.
+     * Runs after initial seeding to enrich the database with real launch data.
+     */
+    private void syncFromExternalApi() {
+        try {
+            log.info("Starting automatic sync from TheSpaceDevs API...");
+
+            // Sync recent launches (past missions)
+            var missionResults = spaceDevsSyncService.syncRecentLaunches(200);
+            log.info("Mission sync completed: {}", missionResults);
+
+            // Sync launch sites
+            var siteResults = spaceDevsSyncService.syncLaunchSites(100);
+            log.info("Launch site sync completed: {}", siteResults);
+
+            log.info("External API sync completed successfully!");
+        } catch (Exception e) {
+            log.warn("External API sync failed (non-critical): {}", e.getMessage());
+            // Don't fail startup if external API is unavailable
+        }
     }
 
     private void loadExistingCountries() {
