@@ -81,11 +81,11 @@ public class AnalyticsService {
     /**
      * Get global launches per year in frontend-compatible format
      * Format: { years: [], byCountry: {}, total: [] }
+     * Uses real mission data from database synced from TheSpaceDevs API
      */
     public Map<String, Object> getLaunchesPerYear() {
         Map<String, Object> result = new LinkedHashMap<>();
 
-        // Get historical launch data - use real country data for realistic numbers
         int currentYear = LocalDate.now().getYear();
         int startYear = currentYear - 5;
 
@@ -96,36 +96,54 @@ public class AnalyticsService {
         }
         result.put("years", years);
 
-        // Get all countries with launch capability
-        List<Country> launchCapableCountries = countryRepository.findByIndependentLaunchCapableTrue();
+        // Get all missions with launch dates in our date range
+        List<SpaceMission> missions = spaceMissionRepository.findByYearRange(startYear, currentYear);
 
-        // Build byCountry data using country totals distributed over years
+        // Group missions by country and year
+        Map<String, Map<Integer, Long>> countryYearCounts = missions.stream()
+            .filter(m -> m.getLaunchDate() != null && m.getCountry() != null)
+            .collect(Collectors.groupingBy(
+                m -> m.getCountry().getName(),
+                Collectors.groupingBy(
+                    m -> m.getLaunchDate().getYear(),
+                    Collectors.counting()
+                )
+            ));
+
+        // Build byCountry arrays aligned with years
         Map<String, List<Long>> byCountry = new LinkedHashMap<>();
         List<Long> totals = new ArrayList<>(Collections.nCopies(years.size(), 0L));
 
-        for (Country country : launchCapableCountries) {
-            Integer totalLaunches = country.getTotalLaunches();
-            if (totalLaunches == null || totalLaunches == 0) continue;
+        for (Map.Entry<String, Map<Integer, Long>> countryEntry : countryYearCounts.entrySet()) {
+            String countryName = countryEntry.getKey();
+            Map<Integer, Long> yearCounts = countryEntry.getValue();
 
-            String countryName = country.getName();
             List<Long> countryData = new ArrayList<>();
-
-            // Distribute launches across years based on realistic growth patterns
-            // Recent years have more launches due to industry growth
-            double[] weights = {0.08, 0.10, 0.14, 0.18, 0.22, 0.28}; // Growth pattern
-            int yearsCount = years.size();
-
-            for (int i = 0; i < yearsCount; i++) {
-                // Base launches from total, with yearly variation
-                long yearLaunches = Math.round(totalLaunches * weights[i] / 3.0);
-                // Add some variation
-                yearLaunches = Math.max(0, yearLaunches + (long)(Math.random() * 3 - 1));
-                countryData.add(yearLaunches);
-                totals.set(i, totals.get(i) + yearLaunches);
+            for (int i = 0; i < years.size(); i++) {
+                int year = years.get(i);
+                long count = yearCounts.getOrDefault(year, 0L);
+                countryData.add(count);
+                totals.set(i, totals.get(i) + count);
             }
 
-            byCountry.put(countryName, countryData);
+            // Only include countries with at least 1 launch
+            if (countryData.stream().mapToLong(Long::longValue).sum() > 0) {
+                byCountry.put(countryName, countryData);
+            }
         }
+
+        // Sort by total launches descending
+        byCountry = byCountry.entrySet().stream()
+            .sorted((a, b) -> Long.compare(
+                b.getValue().stream().mapToLong(Long::longValue).sum(),
+                a.getValue().stream().mapToLong(Long::longValue).sum()
+            ))
+            .collect(Collectors.toMap(
+                Map.Entry::getKey,
+                Map.Entry::getValue,
+                (e1, e2) -> e1,
+                LinkedHashMap::new
+            ));
 
         result.put("byCountry", byCountry);
         result.put("total", totals);

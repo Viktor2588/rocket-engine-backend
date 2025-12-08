@@ -50,11 +50,11 @@ public class SpaceDevsApiClient {
     }
 
     /**
-     * Fetch recent launches
+     * Fetch recent past launches (completed)
      */
     public List<LaunchDto> fetchLaunches(int limit) {
-        String url = BASE_URL + "/launch/?limit=" + limit + "&ordering=-net";
-        log.info("Fetching launches from: {}", url);
+        String url = BASE_URL + "/launch/previous/?limit=" + limit + "&ordering=-net";
+        log.info("Fetching previous launches from: {}", url);
 
         try {
             ResponseEntity<SpaceDevsPageResponse<LaunchDto>> response = restTemplate.exchange(
