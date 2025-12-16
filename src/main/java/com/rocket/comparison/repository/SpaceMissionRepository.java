@@ -119,6 +119,13 @@ public interface SpaceMissionRepository extends JpaRepository<SpaceMission, Long
     @Query("SELECT m.launchYear, COUNT(m) FROM SpaceMission m WHERE m.launchYear IS NOT NULL GROUP BY m.launchYear ORDER BY m.launchYear ASC")
     List<Object[]> countMissionsByYear();
 
+    // BE-053: Group by country and year for analytics
+    @Query("SELECT m.country.id, m.country.name, m.country.isoCode, m.launchYear, COUNT(m) " +
+           "FROM SpaceMission m WHERE m.country IS NOT NULL AND m.launchYear IS NOT NULL " +
+           "GROUP BY m.country.id, m.country.name, m.country.isoCode, m.launchYear " +
+           "ORDER BY COUNT(m) DESC, m.launchYear ASC")
+    List<Object[]> countMissionsByCountryAndYear();
+
     // ==================== Lists ====================
 
     @Query("SELECT DISTINCT m.launchYear FROM SpaceMission m WHERE m.launchYear IS NOT NULL ORDER BY m.launchYear ASC")

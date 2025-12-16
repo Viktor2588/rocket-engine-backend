@@ -56,4 +56,18 @@ public interface CountryRepository extends JpaRepository<Country, Long> {
     // Optimized query for emerging nations - exclude high scorers
     @Query("SELECT c FROM Country c WHERE c.overallCapabilityScore IS NULL OR c.overallCapabilityScore <= :threshold")
     List<Country> findPotentialEmergingNations(@Param("threshold") Double threshold);
+
+    // BE-052: Additional COUNT queries for analytics
+    @Query("SELECT COUNT(c) FROM Country c WHERE c.reusableRocketCapable = true")
+    Long countWithReusableCapability();
+
+    // BE-052: Records queries with LIMIT 1
+    @Query("SELECT c FROM Country c WHERE c.totalLaunches IS NOT NULL ORDER BY c.totalLaunches DESC LIMIT 1")
+    Optional<Country> findCountryWithMostLaunches();
+
+    @Query("SELECT c FROM Country c WHERE c.totalLaunches IS NOT NULL AND c.totalLaunches >= :minLaunches AND c.launchSuccessRate IS NOT NULL ORDER BY c.launchSuccessRate DESC LIMIT 1")
+    Optional<Country> findCountryWithHighestSuccessRate(@Param("minLaunches") Integer minLaunches);
+
+    @Query("SELECT c FROM Country c WHERE c.overallCapabilityScore IS NOT NULL ORDER BY c.overallCapabilityScore DESC LIMIT 1")
+    Optional<Country> findCountryWithHighestCapabilityScore();
 }

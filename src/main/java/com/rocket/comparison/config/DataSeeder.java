@@ -35,6 +35,7 @@ public class DataSeeder implements CommandLineRunner {
     private final LaunchSiteRepository launchSiteRepository;
     private final CapabilityScoreRepository capabilityScoreRepository;
     private final SpaceDevsSyncService spaceDevsSyncService;
+    private final SyncStatusIndicator syncStatusIndicator;
 
     @Value("${sync.external.enabled:true}")
     private boolean externalSyncEnabled;
@@ -115,12 +116,17 @@ public class DataSeeder implements CommandLineRunner {
      * Syncs additional data from TheSpaceDevs API.
      * Runs after initial seeding to enrich the database with real launch data.
      * Can be disabled via sync.external.enabled=false property (BE-060).
+     * Records sync status to database for persistence across restarts (BE-061).
      */
     private void syncFromExternalApi() {
         if (!externalSyncEnabled) {
             log.info("External API sync is disabled (sync.external.enabled=false)");
             return;
         }
+
+        // Start tracking sync status
+        var syncStatus = syncStatusIndicator.startSync("spacedevs_api");
+        int totalRecordsSynced = 0;
 
         try {
             log.info("Starting automatic sync from TheSpaceDevs API (missions={}, sites={})...",
@@ -129,16 +135,34 @@ public class DataSeeder implements CommandLineRunner {
             // Sync recent launches (past missions)
             var missionResults = spaceDevsSyncService.syncRecentLaunches(missionsLimit);
             log.info("Mission sync completed: {}", missionResults);
+            totalRecordsSynced += extractSyncedCount(missionResults);
 
             // Sync launch sites
             var siteResults = spaceDevsSyncService.syncLaunchSites(sitesLimit);
             log.info("Launch site sync completed: {}", siteResults);
+            totalRecordsSynced += extractSyncedCount(siteResults);
 
-            log.info("External API sync completed successfully!");
+            // Record successful sync
+            syncStatusIndicator.recordSyncSuccess(syncStatus, totalRecordsSynced);
+            log.info("External API sync completed successfully! Total records synced: {}", totalRecordsSynced);
         } catch (Exception e) {
+            // Record failed sync
+            syncStatusIndicator.recordSyncFailure(syncStatus, e.getMessage());
             log.warn("External API sync failed (non-critical): {}", e.getMessage());
             // Don't fail startup if external API is unavailable
         }
+    }
+
+    /**
+     * Extracts the number of synced records from a sync result map.
+     */
+    private int extractSyncedCount(Map<String, Object> result) {
+        if (result == null) return 0;
+        Object synced = result.get("synced");
+        if (synced instanceof Number) {
+            return ((Number) synced).intValue();
+        }
+        return 0;
     }
 
     private void loadExistingCountries() {

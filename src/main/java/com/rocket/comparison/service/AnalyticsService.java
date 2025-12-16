@@ -157,37 +157,44 @@ public class AnalyticsService {
 
     /**
      * Get launches per year broken down by country
+     * BE-053: Optimized with single GROUP BY query instead of N+1 queries
      */
     @Cacheable(ANALYTICS_CACHE)
     public Map<String, Object> getLaunchesPerYearByCountry() {
         Map<String, Object> result = new LinkedHashMap<>();
 
-        List<Map<String, Object>> countryData = new ArrayList<>();
+        // Use optimized query to get all data in one go
+        List<Object[]> rawData = spaceMissionRepository.countMissionsByCountryAndYear();
 
-        countryRepository.findAll().forEach(country -> {
-            Long missionCount = spaceMissionRepository.countByCountry(country.getId());
-            if (missionCount > 0) {
+        // Group by country
+        Map<Long, Map<String, Object>> countryMap = new LinkedHashMap<>();
+
+        for (Object[] row : rawData) {
+            Long countryId = (Long) row[0];
+            String countryName = (String) row[1];
+            String isoCode = (String) row[2];
+            Integer year = (Integer) row[3];
+            Long count = (Long) row[4];
+
+            countryMap.computeIfAbsent(countryId, k -> {
                 Map<String, Object> countryStats = new LinkedHashMap<>();
-                countryStats.put("countryId", country.getId());
-                countryStats.put("countryName", country.getName());
-                countryStats.put("isoCode", country.getIsoCode());
-                countryStats.put("totalMissions", missionCount);
+                countryStats.put("countryId", countryId);
+                countryStats.put("countryName", countryName);
+                countryStats.put("isoCode", isoCode);
+                countryStats.put("totalMissions", 0L);
+                countryStats.put("byYear", new LinkedHashMap<Integer, Long>());
+                return countryStats;
+            });
 
-                // Get year breakdown for this country
-                List<SpaceMission> missions = spaceMissionRepository.findByCountryIdOrderByLaunchDateDesc(country.getId());
-                Map<Integer, Long> yearBreakdown = missions.stream()
-                    .filter(m -> m.getLaunchDate() != null)
-                    .collect(Collectors.groupingBy(
-                        m -> m.getLaunchDate().getYear(),
-                        Collectors.counting()
-                    ));
-                countryStats.put("byYear", yearBreakdown);
+            Map<String, Object> countryStats = countryMap.get(countryId);
+            countryStats.put("totalMissions", (Long) countryStats.get("totalMissions") + count);
+            @SuppressWarnings("unchecked")
+            Map<Integer, Long> byYear = (Map<Integer, Long>) countryStats.get("byYear");
+            byYear.put(year, count);
+        }
 
-                countryData.add(countryStats);
-            }
-        });
-
-        // Sort by total missions descending
+        // Convert to list and sort by total missions descending
+        List<Map<String, Object>> countryData = new ArrayList<>(countryMap.values());
         countryData.sort((a, b) -> Long.compare(
             (Long) b.get("totalMissions"),
             (Long) a.get("totalMissions")
@@ -344,9 +351,9 @@ public class AnalyticsService {
         });
         result.put("powerCycleDistribution", cycleUsage);
 
-        // Reusability trend
-        long reusableCount = countryRepository.findByReusableRocketCapableTrue().size();
-        long totalWithCapability = countryRepository.findByIndependentLaunchCapableTrue().size();
+        // Reusability trend - BE-052: Use COUNT queries instead of findAll().size()
+        long reusableCount = countryRepository.countWithReusableCapability();
+        long totalWithCapability = countryRepository.countWithLaunchCapability();
         result.put("reusabilityAdoption", Map.of(
             "countriesWithReusable", reusableCount,
             "countriesWithLaunchCapability", totalWithCapability,
@@ -360,13 +367,13 @@ public class AnalyticsService {
         // Orbit utilization
         result.put("orbitUtilization", satelliteRepository.countSatellitesByOrbit());
 
-        // Launch site capability trends
+        // Launch site capability trends - BE-052: Use COUNT queries
         result.put("launchSiteCapabilities", Map.of(
             "total", launchSiteRepository.count(),
             "active", launchSiteRepository.countActiveLaunchSites(),
-            "humanRated", launchSiteRepository.findHumanRatedSites().size(),
-            "interplanetary", launchSiteRepository.findInterplanetaryCapableSites().size(),
-            "withLanding", launchSiteRepository.findSitesWithLandingFacilities().size()
+            "humanRated", launchSiteRepository.countHumanRatedSites(),
+            "interplanetary", launchSiteRepository.countInterplanetaryCapableSites(),
+            "withLanding", launchSiteRepository.countSitesWithLandingFacilities()
         ));
 
         return result;
@@ -406,24 +413,19 @@ public class AnalyticsService {
 
         records.put("engines", engineRecords);
 
-        // Country records
+        // Country records - BE-052: Use LIMIT 1 queries instead of findAll() streams
         Map<String, Object> countryRecords = new LinkedHashMap<>();
 
-        // Most launches
-        countryRepository.findAll().stream()
-            .filter(c -> c.getTotalLaunches() != null)
-            .max(Comparator.comparing(Country::getTotalLaunches))
+        // Most launches - optimized query
+        countryRepository.findCountryWithMostLaunches()
             .ifPresent(c -> countryRecords.put("mostLaunches", Map.of(
                 "countryId", c.getId(),
                 "countryName", c.getName(),
                 "totalLaunches", c.getTotalLaunches()
             )));
 
-        // Highest success rate (min launches required)
-        countryRepository.findAll().stream()
-            .filter(c -> c.getTotalLaunches() != null && c.getTotalLaunches() >= MIN_LAUNCHES_FOR_RANKING)
-            .filter(c -> c.getLaunchSuccessRate() != null)
-            .max(Comparator.comparing(Country::getLaunchSuccessRate))
+        // Highest success rate (min launches required) - optimized query
+        countryRepository.findCountryWithHighestSuccessRate(MIN_LAUNCHES_FOR_RANKING)
             .ifPresent(c -> countryRecords.put("highestSuccessRate", Map.of(
                 "countryId", c.getId(),
                 "countryName", c.getName(),
@@ -431,10 +433,8 @@ public class AnalyticsService {
                 "totalLaunches", c.getTotalLaunches()
             )));
 
-        // Highest capability score
-        countryRepository.findAll().stream()
-            .filter(c -> c.getOverallCapabilityScore() != null)
-            .max(Comparator.comparing(Country::getOverallCapabilityScore))
+        // Highest capability score - optimized query
+        countryRepository.findCountryWithHighestCapabilityScore()
             .ifPresent(c -> countryRecords.put("highestCapabilityScore", Map.of(
                 "countryId", c.getId(),
                 "countryName", c.getName(),
@@ -457,13 +457,12 @@ public class AnalyticsService {
 
         records.put("countries", countryRecords);
 
-        // Mission records
+        // Mission records - BE-052: Use ORDER BY LIMIT queries instead of findAll() streams
         Map<String, Object> missionRecords = new LinkedHashMap<>();
 
-        // Longest mission
-        spaceMissionRepository.findAll().stream()
-            .filter(m -> m.getDurationDays() != null)
-            .max(Comparator.comparing(SpaceMission::getDurationDays))
+        // Longest mission - use optimized query
+        spaceMissionRepository.findLongestMissions().stream()
+            .findFirst()
             .ifPresent(m -> missionRecords.put("longestMission", Map.of(
                 "missionId", m.getId(),
                 "missionName", m.getName(),
@@ -471,10 +470,9 @@ public class AnalyticsService {
                 "country", m.getCountry() != null ? m.getCountry().getName() : null
             )));
 
-        // Largest crew
-        spaceMissionRepository.findAll().stream()
-            .filter(m -> m.getCrewSize() != null)
-            .max(Comparator.comparing(SpaceMission::getCrewSize))
+        // Largest crew - use optimized query
+        spaceMissionRepository.findLargestCrewMissions().stream()
+            .findFirst()
             .ifPresent(m -> missionRecords.put("largestCrew", Map.of(
                 "missionId", m.getId(),
                 "missionName", m.getName(),
@@ -484,37 +482,37 @@ public class AnalyticsService {
 
         records.put("missions", missionRecords);
 
-        // Satellite records
+        // Satellite records - BE-052: Use GROUP BY queries instead of findAll() streams
         Map<String, Object> satelliteRecords = new LinkedHashMap<>();
 
-        // Largest constellation
-        Map<String, Long> constellationSizes = satelliteRepository.findAll().stream()
-            .filter(s -> s.getConstellation() != null && !s.getConstellation().isEmpty())
-            .collect(Collectors.groupingBy(
-                Satellite::getConstellation,
-                Collectors.counting()
-            ));
-        constellationSizes.entrySet().stream()
-            .max(Map.Entry.comparingByValue())
-            .ifPresent(entry -> satelliteRecords.put("largestConstellation", Map.of(
-                "name", entry.getKey(),
-                "count", entry.getValue()
-            )));
+        // Largest constellation - use GROUP BY query
+        satelliteRepository.countSatellitesByConstellation().stream()
+            .findFirst()
+            .ifPresent(row -> {
+                String name = (String) row[0];
+                Long count = (Long) row[1];
+                if (name != null) {
+                    satelliteRecords.put("largestConstellation", Map.of(
+                        "name", name,
+                        "count", count
+                    ));
+                }
+            });
 
-        // Most satellites by country
-        Map<String, Long> satellitesByCountry = new LinkedHashMap<>();
-        countryRepository.findAll().forEach(c -> {
-            Long count = satelliteRepository.countByCountry(c.getId());
-            if (count > 0) {
-                satellitesByCountry.put(c.getName(), count);
-            }
-        });
-        satellitesByCountry.entrySet().stream()
-            .max(Map.Entry.comparingByValue())
-            .ifPresent(entry -> satelliteRecords.put("mostSatellites", Map.of(
-                "countryName", entry.getKey(),
-                "count", entry.getValue()
-            )));
+        // Most satellites by country - use GROUP BY query
+        satelliteRepository.countSatellitesByCountry().stream()
+            .findFirst()
+            .ifPresent(row -> {
+                Long countryId = (Long) row[0];
+                Long count = (Long) row[1];
+                countryRepository.findById(countryId).ifPresent(country ->
+                    satelliteRecords.put("mostSatellites", Map.of(
+                        "countryName", country.getName(),
+                        "countryId", countryId,
+                        "count", count
+                    ))
+                );
+            });
 
         records.put("satellites", satelliteRecords);
 
