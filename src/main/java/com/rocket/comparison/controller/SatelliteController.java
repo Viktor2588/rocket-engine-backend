@@ -2,6 +2,7 @@ package com.rocket.comparison.controller;
 
 import com.rocket.comparison.entity.*;
 import com.rocket.comparison.service.SatelliteService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -45,7 +46,7 @@ public class SatelliteController {
     }
 
     @PostMapping
-    public ResponseEntity<Satellite> createSatellite(@RequestBody Satellite satellite) {
+    public ResponseEntity<Satellite> createSatellite(@Valid @RequestBody Satellite satellite) {
         Satellite saved = satelliteService.saveSatellite(satellite);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
@@ -53,7 +54,7 @@ public class SatelliteController {
     @PutMapping("/{id}")
     public ResponseEntity<Satellite> updateSatellite(
             @PathVariable Long id,
-            @RequestBody Satellite satellite) {
+            @Valid @RequestBody Satellite satellite) {
         try {
             Satellite updated = satelliteService.updateSatellite(id, satellite);
             return ResponseEntity.ok(updated);

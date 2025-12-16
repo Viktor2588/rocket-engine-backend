@@ -1,163 +1,83 @@
 package com.rocket.comparison.exception;
 
-import jakarta.servlet.http.HttpServletRequest;
-import lombok.extern.slf4j.Slf4j;
+import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.net.URI;
-import java.time.Instant;
-import java.util.HashMap;
+import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 /**
- * Global exception handler providing standardized error responses (BE-020/BE-021)
- * Uses RFC 7807 ProblemDetail format with correlation IDs for tracing
+ * Global exception handler for consistent error responses across all controllers.
+ * BE-022: Handles validation errors from @Valid annotations.
  */
-@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    private static final String CORRELATION_ID_HEADER = "X-Request-Id";
-
     /**
-     * Handle validation errors (BE-022)
+     * Handles validation errors from @Valid on @RequestBody
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ProblemDetail> handleValidationExceptions(
-            MethodArgumentNotValidException ex,
-            HttpServletRequest request) {
+    public ResponseEntity<Map<String, Object>> handleValidationErrors(MethodArgumentNotValidException ex) {
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("timestamp", LocalDateTime.now().toString());
+        response.put("status", HttpStatus.BAD_REQUEST.value());
+        response.put("error", "Validation Failed");
 
-        String correlationId = getOrCreateCorrelationId(request);
+        List<Map<String, String>> errors = ex.getBindingResult().getFieldErrors().stream()
+                .map(error -> Map.of(
+                        "field", error.getField(),
+                        "message", error.getDefaultMessage() != null ? error.getDefaultMessage() : "Invalid value",
+                        "rejectedValue", error.getRejectedValue() != null ? error.getRejectedValue().toString() : "null"
+                ))
+                .toList();
 
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
-                HttpStatus.BAD_REQUEST,
-                "Validation failed for request"
-        );
-        problem.setTitle("Validation Error");
-        problem.setType(URI.create("https://api.rocket-comparison.com/errors/validation"));
-        problem.setInstance(URI.create(request.getRequestURI()));
-        problem.setProperty("correlationId", correlationId);
-        problem.setProperty("timestamp", Instant.now().toString());
+        response.put("errors", errors);
+        response.put("message", "Request body validation failed. See 'errors' for details.");
 
-        // Collect field errors
-        Map<String, String> fieldErrors = new HashMap<>();
-        ex.getBindingResult().getAllErrors().forEach(error -> {
-            String fieldName = ((FieldError) error).getField();
-            String errorMessage = error.getDefaultMessage();
-            fieldErrors.put(fieldName, errorMessage);
-        });
-        problem.setProperty("fieldErrors", fieldErrors);
-
-        log.warn("Validation failed [{}]: {} - {}", correlationId, request.getRequestURI(), fieldErrors);
-
-        return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
-                .header(CORRELATION_ID_HEADER, correlationId)
-                .body(problem);
+        return ResponseEntity.badRequest().body(response);
     }
 
     /**
-     * Handle IllegalArgumentException (typically bad request data)
+     * Handles constraint violations from @Valid on path/query parameters
+     */
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleConstraintViolation(ConstraintViolationException ex) {
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("timestamp", LocalDateTime.now().toString());
+        response.put("status", HttpStatus.BAD_REQUEST.value());
+        response.put("error", "Constraint Violation");
+
+        List<Map<String, String>> errors = ex.getConstraintViolations().stream()
+                .map(violation -> Map.of(
+                        "field", violation.getPropertyPath().toString(),
+                        "message", violation.getMessage(),
+                        "invalidValue", violation.getInvalidValue() != null ? violation.getInvalidValue().toString() : "null"
+                ))
+                .toList();
+
+        response.put("errors", errors);
+        response.put("message", "Parameter validation failed. See 'errors' for details.");
+
+        return ResponseEntity.badRequest().body(response);
+    }
+
+    /**
+     * Handles general IllegalArgumentException errors
      */
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ProblemDetail> handleIllegalArgument(
-            IllegalArgumentException ex,
-            HttpServletRequest request) {
+    public ResponseEntity<Map<String, Object>> handleIllegalArgument(IllegalArgumentException ex) {
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("timestamp", LocalDateTime.now().toString());
+        response.put("status", HttpStatus.BAD_REQUEST.value());
+        response.put("error", "Bad Request");
+        response.put("message", ex.getMessage());
 
-        String correlationId = getOrCreateCorrelationId(request);
-
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
-                HttpStatus.BAD_REQUEST,
-                ex.getMessage()
-        );
-        problem.setTitle("Bad Request");
-        problem.setType(URI.create("https://api.rocket-comparison.com/errors/bad-request"));
-        problem.setInstance(URI.create(request.getRequestURI()));
-        problem.setProperty("correlationId", correlationId);
-        problem.setProperty("timestamp", Instant.now().toString());
-
-        log.warn("Bad request [{}]: {} - {}", correlationId, request.getRequestURI(), ex.getMessage());
-
-        return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
-                .header(CORRELATION_ID_HEADER, correlationId)
-                .body(problem);
-    }
-
-    /**
-     * Handle resource not found scenarios
-     */
-    @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<ProblemDetail> handleResourceNotFound(
-            ResourceNotFoundException ex,
-            HttpServletRequest request) {
-
-        String correlationId = getOrCreateCorrelationId(request);
-
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
-                HttpStatus.NOT_FOUND,
-                ex.getMessage()
-        );
-        problem.setTitle("Resource Not Found");
-        problem.setType(URI.create("https://api.rocket-comparison.com/errors/not-found"));
-        problem.setInstance(URI.create(request.getRequestURI()));
-        problem.setProperty("correlationId", correlationId);
-        problem.setProperty("timestamp", Instant.now().toString());
-        problem.setProperty("resourceType", ex.getResourceType());
-        problem.setProperty("resourceId", ex.getResourceId());
-
-        log.info("Resource not found [{}]: {} - {}", correlationId, request.getRequestURI(), ex.getMessage());
-
-        return ResponseEntity
-                .status(HttpStatus.NOT_FOUND)
-                .header(CORRELATION_ID_HEADER, correlationId)
-                .body(problem);
-    }
-
-    /**
-     * Handle all other unexpected exceptions
-     */
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ProblemDetail> handleGenericException(
-            Exception ex,
-            HttpServletRequest request) {
-
-        String correlationId = getOrCreateCorrelationId(request);
-
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
-                HttpStatus.INTERNAL_SERVER_ERROR,
-                "An unexpected error occurred. Please try again later."
-        );
-        problem.setTitle("Internal Server Error");
-        problem.setType(URI.create("https://api.rocket-comparison.com/errors/internal"));
-        problem.setInstance(URI.create(request.getRequestURI()));
-        problem.setProperty("correlationId", correlationId);
-        problem.setProperty("timestamp", Instant.now().toString());
-
-        // Log full stack trace for debugging
-        log.error("Unexpected error [{}]: {} - {}", correlationId, request.getRequestURI(), ex.getMessage(), ex);
-
-        return ResponseEntity
-                .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .header(CORRELATION_ID_HEADER, correlationId)
-                .body(problem);
-    }
-
-    /**
-     * Get existing correlation ID from request or create new one
-     */
-    private String getOrCreateCorrelationId(HttpServletRequest request) {
-        String correlationId = request.getHeader(CORRELATION_ID_HEADER);
-        if (correlationId == null || correlationId.isBlank()) {
-            correlationId = UUID.randomUUID().toString();
-        }
-        return correlationId;
+        return ResponseEntity.badRequest().body(response);
     }
 }

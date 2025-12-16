@@ -86,6 +86,9 @@ public interface SpaceMilestoneRepository extends JpaRepository<SpaceMilestone, 
     @Query("SELECT DISTINCT m.decade FROM SpaceMilestone m ORDER BY m.decade ASC")
     List<Integer> findAllDecades();
 
+    @Query("SELECT m.decade, COUNT(m) FROM SpaceMilestone m WHERE m.decade IS NOT NULL GROUP BY m.decade ORDER BY m.decade ASC")
+    List<Object[]> countByDecade();
+
     @Query("SELECT DISTINCT m.era FROM SpaceMilestone m ORDER BY m.era ASC")
     List<String> findAllEras();
 

@@ -43,13 +43,13 @@ public class GlobalStatisticsService {
         overview.put("activeSatellites", satelliteRepository.countActiveSatellites());
         overview.put("activeLaunchSites", launchSiteRepository.countActiveLaunchSites());
 
-        // Capability metrics
-        overview.put("humanRatedLaunchSites", launchSiteRepository.findHumanRatedSites().size());
-        overview.put("interplanetaryCapableSites", launchSiteRepository.findInterplanetaryCapableSites().size());
+        // Capability metrics - BE-011: Use COUNT queries instead of findAll().size()
+        overview.put("humanRatedLaunchSites", launchSiteRepository.countHumanRatedSites());
+        overview.put("interplanetaryCapableSites", launchSiteRepository.countInterplanetaryCapableSites());
 
-        // Time-based metrics
+        // Time-based metrics - BE-011: Use COUNT query
         int currentYear = LocalDate.now().getYear();
-        overview.put("missionsThisYear", spaceMissionRepository.findByLaunchYear(currentYear).size());
+        overview.put("missionsThisYear", spaceMissionRepository.countByLaunchYear(currentYear));
 
         overview.put("generatedAt", LocalDate.now().toString());
 
@@ -62,10 +62,11 @@ public class GlobalStatisticsService {
     public Map<String, Object> getEntityCounts() {
         Map<String, Object> counts = new LinkedHashMap<>();
 
+        // BE-011: Use COUNT queries instead of findAll().size()
         counts.put("countries", Map.of(
             "total", countryRepository.count(),
-            "withLaunchCapability", countryRepository.findByIndependentLaunchCapableTrue().size(),
-            "withHumanSpaceflight", countryRepository.findByHumanSpaceflightCapableTrue().size()
+            "withLaunchCapability", countryRepository.countWithLaunchCapability(),
+            "withHumanSpaceflight", countryRepository.countWithHumanSpaceflight()
         ));
 
         counts.put("engines", Map.of(
@@ -77,20 +78,23 @@ public class GlobalStatisticsService {
             "active", satelliteRepository.countActiveSatellites()
         ));
 
+        // BE-011: Use COUNT query
         counts.put("launchSites", Map.of(
             "total", launchSiteRepository.count(),
             "active", launchSiteRepository.countActiveLaunchSites(),
-            "humanRated", launchSiteRepository.findHumanRatedSites().size()
+            "humanRated", launchSiteRepository.countHumanRatedSites()
         ));
 
+        // BE-011: Use COUNT query
         counts.put("missions", Map.of(
             "total", spaceMissionRepository.count(),
-            "crewed", spaceMissionRepository.findCrewedMissions().size()
+            "crewed", spaceMissionRepository.countCrewedMissions()
         ));
 
+        // BE-011: Use COUNT query
         counts.put("milestones", Map.of(
             "total", spaceMilestoneRepository.count(),
-            "firsts", spaceMilestoneRepository.findAllGlobalFirsts().size()
+            "firsts", spaceMilestoneRepository.countGlobalFirsts()
         ));
 
         return counts;
@@ -178,57 +182,53 @@ public class GlobalStatisticsService {
 
     /**
      * Get engine technology breakdown
+     * BE-011: Use DB GROUP BY and aggregate queries instead of findAll()
      */
     public Map<String, Object> getEngineTechnologyStats() {
         Map<String, Object> stats = new LinkedHashMap<>();
 
-        // By propellant type
+        // By propellant type - use GROUP BY query
         Map<String, Long> byPropellant = new LinkedHashMap<>();
-        engineRepository.findAll().forEach(engine -> {
-            String propellant = engine.getPropellant() != null ? engine.getPropellant() : "Unknown";
-            byPropellant.merge(propellant, 1L, Long::sum);
+        engineRepository.countByPropellant().forEach(row -> {
+            String propellant = row[0] != null ? (String) row[0] : "Unknown";
+            Long count = (Long) row[1];
+            byPropellant.put(propellant, count);
         });
         stats.put("byPropellantType", byPropellant);
 
-        // By cycle type
+        // By cycle type - use GROUP BY query
         Map<String, Long> byCycle = new LinkedHashMap<>();
-        engineRepository.findAll().forEach(engine -> {
-            String cycle = engine.getPowerCycle() != null ? engine.getPowerCycle() : "Unknown";
-            byCycle.merge(cycle, 1L, Long::sum);
+        engineRepository.countByPowerCycle().forEach(row -> {
+            String cycle = row[0] != null ? (String) row[0] : "Unknown";
+            Long count = (Long) row[1];
+            byCycle.put(cycle, count);
         });
         stats.put("byCycleType", byCycle);
 
-        // By status
+        // By status - use GROUP BY query
         Map<String, Long> byStatus = new LinkedHashMap<>();
-        engineRepository.findAll().forEach(engine -> {
-            String status = engine.getStatus() != null ? engine.getStatus() : "Unknown";
-            byStatus.merge(status, 1L, Long::sum);
+        engineRepository.countByStatus().forEach(row -> {
+            String status = row[0] != null ? (String) row[0] : "Unknown";
+            Long count = (Long) row[1];
+            byStatus.put(status, count);
         });
         stats.put("byStatus", byStatus);
 
-        // Performance metrics calculated from data
-        OptionalDouble maxThrust = engineRepository.findAll().stream()
-            .filter(e -> e.getThrustN() != null)
-            .mapToDouble(Engine::getThrustN)
-            .max();
-        OptionalDouble maxIsp = engineRepository.findAll().stream()
-            .filter(e -> e.getIsp_s() != null)
-            .mapToDouble(Engine::getIsp_s)
-            .max();
-        OptionalDouble avgThrust = engineRepository.findAll().stream()
-            .filter(e -> e.getThrustN() != null)
-            .mapToDouble(Engine::getThrustN)
-            .average();
+        // Performance metrics - use DB aggregate queries
+        Double maxThrust = engineRepository.findMaxThrust();
+        Double maxIsp = engineRepository.findMaxIsp();
+        Double avgThrust = engineRepository.findAvgThrust();
 
-        stats.put("highestThrustN", maxThrust.orElse(0));
-        stats.put("highestIspS", maxIsp.orElse(0));
-        stats.put("averageThrustN", avgThrust.orElse(0));
+        stats.put("highestThrustN", maxThrust != null ? maxThrust : 0.0);
+        stats.put("highestIspS", maxIsp != null ? maxIsp : 0.0);
+        stats.put("averageThrustN", avgThrust != null ? avgThrust : 0.0);
 
         return stats;
     }
 
     /**
      * Get satellite technology breakdown
+     * BE-011: Use COUNT query instead of findAll().size()
      */
     public Map<String, Object> getSatelliteTechnologyStats() {
         Map<String, Object> stats = new LinkedHashMap<>();
@@ -239,8 +239,8 @@ public class GlobalStatisticsService {
         // By orbit
         stats.put("byOrbit", satelliteRepository.countSatellitesByOrbit());
 
-        // Constellation statistics
-        stats.put("constellationCount", satelliteRepository.findAllConstellations().size());
+        // Constellation statistics - use COUNT query
+        stats.put("constellationCount", satelliteRepository.countConstellations());
 
         return stats;
     }
@@ -249,6 +249,7 @@ public class GlobalStatisticsService {
 
     /**
      * Get launch infrastructure statistics
+     * BE-011: Use COUNT queries instead of findAll().size()
      */
     public Map<String, Object> getLaunchInfrastructureStats() {
         Map<String, Object> stats = new LinkedHashMap<>();
@@ -257,12 +258,12 @@ public class GlobalStatisticsService {
         stats.put("totalLaunchSites", launchSiteRepository.count());
         stats.put("activeSites", launchSiteRepository.countActiveLaunchSites());
 
-        // Capability breakdown
-        stats.put("humanRatedSites", launchSiteRepository.findHumanRatedSites().size());
-        stats.put("interplanetaryCapable", launchSiteRepository.findInterplanetaryCapableSites().size());
-        stats.put("geoCapable", launchSiteRepository.findGeoCapableSites().size());
-        stats.put("polarCapable", launchSiteRepository.findPolarCapableSites().size());
-        stats.put("sitesWithLanding", launchSiteRepository.findSitesWithLandingFacilities().size());
+        // Capability breakdown - use COUNT queries
+        stats.put("humanRatedSites", launchSiteRepository.countHumanRatedSites());
+        stats.put("interplanetaryCapable", launchSiteRepository.countInterplanetaryCapableSites());
+        stats.put("geoCapable", launchSiteRepository.countGeoCapableSites());
+        stats.put("polarCapable", launchSiteRepository.countPolarCapableSites());
+        stats.put("sitesWithLanding", launchSiteRepository.countSitesWithLandingFacilities());
 
         // By country
         stats.put("sitesByCountry", launchSiteRepository.countSitesByCountry());
@@ -277,6 +278,7 @@ public class GlobalStatisticsService {
 
     /**
      * Get mission statistics
+     * BE-011: Use COUNT query instead of findAll().size()
      */
     public Map<String, Object> getMissionStats() {
         Map<String, Object> stats = new LinkedHashMap<>();
@@ -291,8 +293,8 @@ public class GlobalStatisticsService {
         // By year
         stats.put("byYear", spaceMissionRepository.countMissionsByYear());
 
-        // Crewed vs uncrewed
-        long crewed = spaceMissionRepository.findCrewedMissions().size();
+        // Crewed vs uncrewed - use COUNT query
+        long crewed = spaceMissionRepository.countCrewedMissions();
         stats.put("crewedMissions", crewed);
         stats.put("uncrewedMissions", total - crewed);
 
@@ -336,34 +338,34 @@ public class GlobalStatisticsService {
 
     /**
      * Get historical statistics by decade with counts
+     * BE-011: Use GROUP BY queries instead of findAll()
      */
     public Map<String, Object> getStatsByDecade() {
         Map<String, Object> stats = new LinkedHashMap<>();
 
-        // Milestones grouped by decade with counts
+        // Milestones grouped by decade - use GROUP BY query
         Map<String, Long> milestonesByDecade = new LinkedHashMap<>();
-        spaceMilestoneRepository.findAll().forEach(milestone -> {
-            Integer decade = milestone.getDecade();
+        spaceMilestoneRepository.countByDecade().forEach(row -> {
+            Integer decade = (Integer) row[0];
+            Long count = (Long) row[1];
             if (decade != null) {
-                String decadeLabel = decade + "s";
-                milestonesByDecade.merge(decadeLabel, 1L, Long::sum);
+                milestonesByDecade.put(decade + "s", count);
             }
         });
         stats.put("milestonesByDecade", milestonesByDecade);
 
-        // Missions grouped by decade with counts
+        // Missions grouped by decade - use GROUP BY query
         Map<String, Long> missionsByDecade = new LinkedHashMap<>();
-        spaceMissionRepository.findAll().forEach(mission -> {
-            Integer decade = mission.getLaunchDecade();
+        spaceMissionRepository.countMissionsByDecade().forEach(row -> {
+            Integer decade = (Integer) row[0];
+            Long count = (Long) row[1];
             if (decade != null) {
-                String decadeLabel = decade + "s";
-                missionsByDecade.merge(decadeLabel, 1L, Long::sum);
+                missionsByDecade.put(decade + "s", count);
             }
         });
         stats.put("missionsByDecade", missionsByDecade);
 
         // Also include launches by decade from country data
-        Map<String, Long> launchesByDecade = new LinkedHashMap<>();
         // We only have total launch counts, not by decade, so derive from missions
         stats.put("launchesByDecade", missionsByDecade);
 
@@ -372,6 +374,7 @@ public class GlobalStatisticsService {
 
     /**
      * Get year-over-year growth statistics
+     * BE-011: Use COUNT queries instead of findByLaunchYear().size()
      */
     public Map<String, Object> getYearOverYearGrowth() {
         Map<String, Object> growth = new LinkedHashMap<>();
@@ -379,9 +382,9 @@ public class GlobalStatisticsService {
         int currentYear = LocalDate.now().getYear();
         int previousYear = currentYear - 1;
 
-        // Missions
-        long missionsThisYear = spaceMissionRepository.findByLaunchYear(currentYear).size();
-        long missionsLastYear = spaceMissionRepository.findByLaunchYear(previousYear).size();
+        // Missions - use COUNT query
+        long missionsThisYear = spaceMissionRepository.countByLaunchYear(currentYear);
+        long missionsLastYear = spaceMissionRepository.countByLaunchYear(previousYear);
         double missionGrowth = missionsLastYear > 0 ?
             ((double)(missionsThisYear - missionsLastYear) / missionsLastYear * 100) : 0;
 
@@ -391,9 +394,9 @@ public class GlobalStatisticsService {
             "growthPercent", Math.round(missionGrowth * 100.0) / 100.0
         ));
 
-        // Satellites launched
-        long satellitesThisYear = satelliteRepository.findByLaunchYear(currentYear).size();
-        long satellitesLastYear = satelliteRepository.findByLaunchYear(previousYear).size();
+        // Satellites launched - use COUNT query
+        long satellitesThisYear = satelliteRepository.countByLaunchYear(currentYear);
+        long satellitesLastYear = satelliteRepository.countByLaunchYear(previousYear);
         double satelliteGrowth = satellitesLastYear > 0 ?
             ((double)(satellitesThisYear - satellitesLastYear) / satellitesLastYear * 100) : 0;
 

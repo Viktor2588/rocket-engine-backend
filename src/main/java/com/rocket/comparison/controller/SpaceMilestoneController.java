@@ -3,6 +3,7 @@ package com.rocket.comparison.controller;
 import com.rocket.comparison.entity.MilestoneType;
 import com.rocket.comparison.entity.SpaceMilestone;
 import com.rocket.comparison.service.SpaceMilestoneService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -32,7 +33,7 @@ public class SpaceMilestoneController {
     }
 
     @PostMapping
-    public ResponseEntity<SpaceMilestone> createMilestone(@RequestBody SpaceMilestone milestone) {
+    public ResponseEntity<SpaceMilestone> createMilestone(@Valid @RequestBody SpaceMilestone milestone) {
         SpaceMilestone saved = milestoneService.saveMilestone(milestone);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
@@ -40,7 +41,7 @@ public class SpaceMilestoneController {
     @PutMapping("/{id}")
     public ResponseEntity<SpaceMilestone> updateMilestone(
             @PathVariable Long id,
-            @RequestBody SpaceMilestone milestone) {
+            @Valid @RequestBody SpaceMilestone milestone) {
         try {
             SpaceMilestone updated = milestoneService.updateMilestone(id, milestone);
             return ResponseEntity.ok(updated);

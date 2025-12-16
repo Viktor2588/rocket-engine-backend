@@ -3,6 +3,7 @@ package com.rocket.comparison.controller;
 import com.rocket.comparison.entity.LaunchSite;
 import com.rocket.comparison.entity.LaunchSiteStatus;
 import com.rocket.comparison.service.LaunchSiteService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -39,7 +40,7 @@ public class LaunchSiteController {
     }
 
     @PostMapping
-    public ResponseEntity<LaunchSite> createLaunchSite(@RequestBody LaunchSite launchSite) {
+    public ResponseEntity<LaunchSite> createLaunchSite(@Valid @RequestBody LaunchSite launchSite) {
         LaunchSite saved = launchSiteService.saveLaunchSite(launchSite);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
@@ -47,7 +48,7 @@ public class LaunchSiteController {
     @PutMapping("/{id}")
     public ResponseEntity<LaunchSite> updateLaunchSite(
             @PathVariable Long id,
-            @RequestBody LaunchSite launchSite) {
+            @Valid @RequestBody LaunchSite launchSite) {
         try {
             LaunchSite updated = launchSiteService.updateLaunchSite(id, launchSite);
             return ResponseEntity.ok(updated);

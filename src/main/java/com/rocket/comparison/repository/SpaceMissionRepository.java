@@ -59,6 +59,9 @@ public interface SpaceMissionRepository extends JpaRepository<SpaceMission, Long
     @Query("SELECT m FROM SpaceMission m WHERE m.crewed = true ORDER BY m.launchDate DESC")
     List<SpaceMission> findCrewedMissions();
 
+    @Query("SELECT COUNT(m) FROM SpaceMission m WHERE m.crewed = true")
+    Long countCrewedMissions();
+
     @Query("SELECT m FROM SpaceMission m WHERE m.crewed = true AND m.country.id = :countryId ORDER BY m.launchDate DESC")
     List<SpaceMission> findCrewedMissionsByCountry(@Param("countryId") Long countryId);
 
@@ -78,8 +81,14 @@ public interface SpaceMissionRepository extends JpaRepository<SpaceMission, Long
     @Query("SELECT m FROM SpaceMission m WHERE m.launchYear = :year ORDER BY m.launchDate ASC")
     List<SpaceMission> findByLaunchYear(@Param("year") Integer year);
 
+    @Query("SELECT COUNT(m) FROM SpaceMission m WHERE m.launchYear = :year")
+    Long countByLaunchYear(@Param("year") Integer year);
+
     @Query("SELECT m FROM SpaceMission m WHERE m.launchDecade = :decade ORDER BY m.launchDate ASC")
     List<SpaceMission> findByLaunchDecade(@Param("decade") Integer decade);
+
+    @Query("SELECT m.launchDecade, COUNT(m) FROM SpaceMission m WHERE m.launchDecade IS NOT NULL GROUP BY m.launchDecade ORDER BY m.launchDecade ASC")
+    List<Object[]> countMissionsByDecade();
 
     @Query("SELECT m FROM SpaceMission m WHERE m.launchDate BETWEEN :startDate AND :endDate ORDER BY m.launchDate ASC")
     List<SpaceMission> findByDateRange(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);

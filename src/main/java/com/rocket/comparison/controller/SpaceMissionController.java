@@ -5,6 +5,7 @@ import com.rocket.comparison.entity.MissionStatus;
 import com.rocket.comparison.entity.MissionType;
 import com.rocket.comparison.entity.SpaceMission;
 import com.rocket.comparison.service.SpaceMissionService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -34,7 +35,7 @@ public class SpaceMissionController {
     }
 
     @PostMapping
-    public ResponseEntity<SpaceMission> createMission(@RequestBody SpaceMission mission) {
+    public ResponseEntity<SpaceMission> createMission(@Valid @RequestBody SpaceMission mission) {
         SpaceMission saved = missionService.saveMission(mission);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
@@ -42,7 +43,7 @@ public class SpaceMissionController {
     @PutMapping("/{id}")
     public ResponseEntity<SpaceMission> updateMission(
             @PathVariable Long id,
-            @RequestBody SpaceMission mission) {
+            @Valid @RequestBody SpaceMission mission) {
         try {
             SpaceMission updated = missionService.updateMission(id, mission);
             return ResponseEntity.ok(updated);

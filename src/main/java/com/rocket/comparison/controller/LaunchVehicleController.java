@@ -2,6 +2,7 @@ package com.rocket.comparison.controller;
 
 import com.rocket.comparison.entity.LaunchVehicle;
 import com.rocket.comparison.service.LaunchVehicleService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -68,12 +69,12 @@ public class LaunchVehicleController {
     }
 
     @PostMapping
-    public LaunchVehicle create(@RequestBody LaunchVehicle vehicle) {
+    public LaunchVehicle create(@Valid @RequestBody LaunchVehicle vehicle) {
         return launchVehicleService.save(vehicle);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<LaunchVehicle> update(@PathVariable Long id, @RequestBody LaunchVehicle vehicle) {
+    public ResponseEntity<LaunchVehicle> update(@PathVariable Long id, @Valid @RequestBody LaunchVehicle vehicle) {
         return launchVehicleService.findById(id)
             .map(existing -> {
                 vehicle.setId(id);

@@ -46,17 +46,32 @@ public interface LaunchSiteRepository extends JpaRepository<LaunchSite, Long> {
     @Query("SELECT ls FROM LaunchSite ls WHERE ls.humanRatedCapable = true ORDER BY ls.totalLaunches DESC")
     List<LaunchSite> findHumanRatedSites();
 
+    @Query("SELECT COUNT(ls) FROM LaunchSite ls WHERE ls.humanRatedCapable = true")
+    Long countHumanRatedSites();
+
     @Query("SELECT ls FROM LaunchSite ls WHERE ls.supportsInterplanetary = true ORDER BY ls.name ASC")
     List<LaunchSite> findInterplanetaryCapableSites();
+
+    @Query("SELECT COUNT(ls) FROM LaunchSite ls WHERE ls.supportsInterplanetary = true")
+    Long countInterplanetaryCapableSites();
 
     @Query("SELECT ls FROM LaunchSite ls WHERE ls.supportsGeo = true ORDER BY ls.name ASC")
     List<LaunchSite> findGeoCapableSites();
 
+    @Query("SELECT COUNT(ls) FROM LaunchSite ls WHERE ls.supportsGeo = true")
+    Long countGeoCapableSites();
+
     @Query("SELECT ls FROM LaunchSite ls WHERE ls.supportsPolar = true OR ls.supportsSso = true ORDER BY ls.name ASC")
     List<LaunchSite> findPolarCapableSites();
 
+    @Query("SELECT COUNT(ls) FROM LaunchSite ls WHERE ls.supportsPolar = true OR ls.supportsSso = true")
+    Long countPolarCapableSites();
+
     @Query("SELECT ls FROM LaunchSite ls WHERE ls.hasLandingFacilities = true ORDER BY ls.name ASC")
     List<LaunchSite> findSitesWithLandingFacilities();
+
+    @Query("SELECT COUNT(ls) FROM LaunchSite ls WHERE ls.hasLandingFacilities = true")
+    Long countSitesWithLandingFacilities();
 
     // ==================== By Location ====================
 

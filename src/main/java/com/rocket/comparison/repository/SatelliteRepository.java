@@ -114,6 +114,13 @@ public interface SatelliteRepository extends JpaRepository<Satellite, Long> {
     @Query("SELECT s.launchYear, COUNT(s) FROM Satellite s WHERE s.launchYear IS NOT NULL GROUP BY s.launchYear ORDER BY s.launchYear ASC")
     List<Object[]> countSatellitesByYear();
 
+    // BE-011: Additional aggregate queries
+    @Query("SELECT COUNT(DISTINCT s.constellation) FROM Satellite s WHERE s.constellation IS NOT NULL")
+    Long countConstellations();
+
+    @Query("SELECT COUNT(s) FROM Satellite s WHERE s.launchYear = :year")
+    Long countByLaunchYear(@Param("year") Integer year);
+
     // ==================== Search ====================
 
     @Query("SELECT s FROM Satellite s WHERE " +

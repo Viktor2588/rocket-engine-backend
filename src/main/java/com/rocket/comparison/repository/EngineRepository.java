@@ -41,4 +41,17 @@ public interface EngineRepository extends JpaRepository<Engine, Long> {
 
     @Query("SELECT e FROM Engine e WHERE e.isp_s = (SELECT MAX(e2.isp_s) FROM Engine e2 WHERE e2.isp_s IS NOT NULL)")
     List<Engine> findEngineWithHighestIsp();
+
+    // BE-011: Aggregate statistics at database level
+    @Query("SELECT e.status, COUNT(e) FROM Engine e GROUP BY e.status")
+    List<Object[]> countByStatus();
+
+    @Query("SELECT MAX(e.thrustN) FROM Engine e WHERE e.thrustN IS NOT NULL")
+    Double findMaxThrust();
+
+    @Query("SELECT MAX(e.isp_s) FROM Engine e WHERE e.isp_s IS NOT NULL")
+    Double findMaxIsp();
+
+    @Query("SELECT AVG(e.thrustN) FROM Engine e WHERE e.thrustN IS NOT NULL")
+    Double findAvgThrust();
 }
