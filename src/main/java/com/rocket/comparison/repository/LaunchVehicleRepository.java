@@ -1,6 +1,7 @@
 package com.rocket.comparison.repository;
 
 import com.rocket.comparison.entity.LaunchVehicle;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -10,6 +11,15 @@ import java.util.Optional;
 
 @Repository
 public interface LaunchVehicleRepository extends JpaRepository<LaunchVehicle, Long> {
+
+    // Step 2.2: Entity graph methods to avoid N+1 queries when fetching with country
+    @EntityGraph(attributePaths = {"country"})
+    @Query("SELECT lv FROM LaunchVehicle lv")
+    List<LaunchVehicle> findAllWithCountry();
+
+    @EntityGraph(attributePaths = {"country"})
+    @Query("SELECT lv FROM LaunchVehicle lv WHERE lv.id = :id")
+    Optional<LaunchVehicle> findByIdWithCountry(Long id);
 
     List<LaunchVehicle> findByCountryId(Long countryId);
 

@@ -4,6 +4,7 @@ import com.rocket.comparison.entity.Destination;
 import com.rocket.comparison.entity.MissionStatus;
 import com.rocket.comparison.entity.MissionType;
 import com.rocket.comparison.entity.SpaceMission;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -11,9 +12,19 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface SpaceMissionRepository extends JpaRepository<SpaceMission, Long> {
+
+    // Step 2.2: Entity graph methods to avoid N+1 queries when fetching with country
+    @EntityGraph(attributePaths = {"country"})
+    @Query("SELECT m FROM SpaceMission m ORDER BY m.launchDate DESC")
+    List<SpaceMission> findAllWithCountry();
+
+    @EntityGraph(attributePaths = {"country"})
+    @Query("SELECT m FROM SpaceMission m WHERE m.id = :id")
+    Optional<SpaceMission> findByIdWithCountry(@Param("id") Long id);
 
     // ==================== By Country ====================
 

@@ -36,10 +36,28 @@ dependencies {
 	// Actuator for health/metrics (BE-080)
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
+	// Resilience4j for circuit breaker, retry, rate limiter (Step 1.2)
+	implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.2.0'
+	implementation 'org.springframework.boot:spring-boot-starter-aop'
+
+	// SpringDoc OpenAPI for API documentation (Step 3.1)
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0'
+
+	// MapStruct for compile-time DTO mapping (Step 3.2)
+	implementation 'org.mapstruct:mapstruct:1.5.5.Final'
+	annotationProcessor 'org.mapstruct:mapstruct-processor:1.5.5.Final'
+
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
+	// Lombok-MapStruct binding - must be after both processors
+	annotationProcessor 'org.projectlombok:lombok-mapstruct-binding:0.2.0'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+	// TestContainers for integration testing with real PostgreSQL (Step 1.3)
+	testImplementation 'org.testcontainers:testcontainers:1.20.4'
+	testImplementation 'org.testcontainers:postgresql:1.20.4'
+	testImplementation 'org.testcontainers:junit-jupiter:1.20.4'
 }
 
 tasks.named('test') {

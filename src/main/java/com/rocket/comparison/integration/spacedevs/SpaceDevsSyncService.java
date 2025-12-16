@@ -5,10 +5,12 @@ import com.rocket.comparison.integration.spacedevs.dto.*;
 import com.rocket.comparison.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.concurrent.CompletableFuture;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.*;
@@ -132,6 +134,39 @@ public class SpaceDevsSyncService {
 
         log.info("Launch site sync completed: {}", stats);
         return stats;
+    }
+
+    // ==================== Async Sync Methods (Step 2.3) ====================
+    // These methods run on a separate thread pool to avoid blocking HTTP requests
+
+    /**
+     * Async full sync - runs in background
+     */
+    @Async("syncTaskExecutor")
+    public CompletableFuture<Map<String, Object>> fullSyncAsync() {
+        log.info("Starting async full sync from TheSpaceDevs API");
+        Map<String, Object> result = fullSync();
+        return CompletableFuture.completedFuture(result);
+    }
+
+    /**
+     * Async recent launches sync - runs in background
+     */
+    @Async("syncTaskExecutor")
+    public CompletableFuture<Map<String, Object>> syncRecentLaunchesAsync(int limit) {
+        log.info("Starting async sync of {} recent launches", limit);
+        Map<String, Object> result = syncRecentLaunches(limit);
+        return CompletableFuture.completedFuture(result);
+    }
+
+    /**
+     * Async launch sites sync - runs in background
+     */
+    @Async("syncTaskExecutor")
+    public CompletableFuture<Map<String, Object>> syncLaunchSitesAsync(int limit) {
+        log.info("Starting async sync of launch sites");
+        Map<String, Object> result = syncLaunchSites(limit);
+        return CompletableFuture.completedFuture(result);
     }
 
     /**

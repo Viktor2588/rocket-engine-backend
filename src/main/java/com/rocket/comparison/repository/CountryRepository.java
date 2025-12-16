@@ -1,6 +1,7 @@
 package com.rocket.comparison.repository;
 
 import com.rocket.comparison.entity.Country;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -11,6 +12,19 @@ import java.util.Optional;
 
 @Repository
 public interface CountryRepository extends JpaRepository<Country, Long> {
+
+    // Step 2.2: Entity graph methods to avoid N+1 queries when fetching with engines
+    @EntityGraph(attributePaths = {"engines"})
+    @Query("SELECT c FROM Country c")
+    List<Country> findAllWithEngines();
+
+    @EntityGraph(attributePaths = {"engines"})
+    @Query("SELECT c FROM Country c WHERE c.id = :id")
+    Optional<Country> findByIdWithEngines(@Param("id") Long id);
+
+    @EntityGraph(attributePaths = {"engines"})
+    @Query("SELECT c FROM Country c WHERE c.isoCode = :isoCode")
+    Optional<Country> findByIsoCodeWithEngines(@Param("isoCode") String isoCode);
 
     Optional<Country> findByIsoCode(String isoCode);
 

@@ -4,6 +4,11 @@ import com.rocket.comparison.api.dto.EngineSummaryDto;
 import com.rocket.comparison.api.mapper.EngineMapper;
 import com.rocket.comparison.entity.Engine;
 import com.rocket.comparison.service.EngineService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -20,18 +25,23 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/engines")
 @RequiredArgsConstructor
+@Tag(name = "Engines", description = "Rocket engine endpoints - CRUD operations and comparisons")
 public class EngineController {
 
     private final EngineService engineService;
     private final EngineMapper engineMapper;
 
+    @Operation(summary = "Get all engines", description = "Returns a paginated list of rocket engines with optional sorting")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Successfully retrieved engines")
+    })
     @GetMapping
     public ResponseEntity<?> getAllEngines(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
-            @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "asc") String sortDir,
-            @RequestParam(required = false) Boolean unpaged) {
+            @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Page size (max 100)") @RequestParam(defaultValue = "20") int size,
+            @Parameter(description = "Sort field") @RequestParam(defaultValue = "id") String sortBy,
+            @Parameter(description = "Sort direction (asc/desc)") @RequestParam(defaultValue = "asc") String sortDir,
+            @Parameter(description = "Return all without pagination") @RequestParam(required = false) Boolean unpaged) {
         // If unpaged=true, return simple list (for frontend compatibility)
         if (Boolean.TRUE.equals(unpaged)) {
             return ResponseEntity.ok(engineMapper.toSummaryDtoList(engineService.getAllEngines()));
@@ -48,8 +58,13 @@ public class EngineController {
         return ResponseEntity.ok(engineMapper.toSummaryDtoList(engineService.getAllEngines()));
     }
 
+    @Operation(summary = "Get engine by ID", description = "Returns a single engine with full details")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Engine found"),
+        @ApiResponse(responseCode = "404", description = "Engine not found")
+    })
     @GetMapping("/{id}")
-    public ResponseEntity<Engine> getEngineById(@PathVariable Long id) {
+    public ResponseEntity<Engine> getEngineById(@Parameter(description = "Engine ID") @PathVariable Long id) {
         Optional<Engine> engine = engineService.getEngineById(id);
         return engine.map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
@@ -116,8 +131,15 @@ public class EngineController {
         return ResponseEntity.ok(engineMapper.toSummaryDtoList(engineService.getEnginesByOrigin(origin)));
     }
 
+    @Operation(summary = "Compare two engines", description = "Returns a side-by-side comparison of two rocket engines")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Comparison successful"),
+        @ApiResponse(responseCode = "400", description = "One or both engines not found")
+    })
     @GetMapping("/compare")
-    public ResponseEntity<?> compareEngines(@RequestParam Long engine1Id, @RequestParam Long engine2Id) {
+    public ResponseEntity<?> compareEngines(
+            @Parameter(description = "First engine ID") @RequestParam Long engine1Id,
+            @Parameter(description = "Second engine ID") @RequestParam Long engine2Id) {
         Optional<Engine> engine1 = engineService.getEngineById(engine1Id);
         Optional<Engine> engine2 = engineService.getEngineById(engine2Id);
 
