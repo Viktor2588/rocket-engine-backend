@@ -53,12 +53,13 @@ echo ""
 echo "========================================"
 echo "  Current Database Status"
 echo "========================================"
-echo "Engines:      $(count_entities engines)"
-echo "Countries:    $(count_entities countries)"
-echo "Milestones:   $(count_entities milestones)"
-echo "Missions:     $(count_entities missions)"
-echo "Satellites:   $(count_entities satellites)"
-echo "Launch Sites: $(count_entities launch-sites)"
+echo "Engines:         $(count_entities engines)"
+echo "Countries:       $(count_entities countries)"
+echo "Launch Vehicles: $(count_entities launch-vehicles)"
+echo "Milestones:      $(count_entities milestones)"
+echo "Missions:        $(count_entities missions)"
+echo "Satellites:      $(count_entities satellites)"
+echo "Launch Sites:    $(count_entities launch-sites)"
 echo ""
 
 # 1. Seed Engines (no dependencies)
@@ -74,9 +75,22 @@ else
 fi
 echo ""
 
-# 2. Seed Countries (no dependencies)
+# 2. Seed Launch Vehicles (no dependencies)
 echo "========================================"
-echo "  Step 2: Seeding Countries"
+echo "  Step 2: Seeding Launch Vehicles"
+echo "========================================"
+if check_empty "launch-vehicles"; then
+    echo "Launch vehicles collection is empty. Seeding..."
+    bash "$SCRIPT_DIR/seed-launch-vehicles.sh"
+    echo "Launch vehicles seeded!"
+else
+    echo "Launch vehicles already exist. Skipping..."
+fi
+echo ""
+
+# 3. Seed Countries (no dependencies)
+echo "========================================"
+echo "  Step 3: Seeding Countries"
 echo "========================================"
 if check_empty "countries"; then
     echo "Countries collection is empty. Seeding..."
@@ -91,9 +105,9 @@ else
 fi
 echo ""
 
-# 3. Seed Milestones (depends on countries)
+# 4. Seed Milestones (depends on countries)
 echo "========================================"
-echo "  Step 3: Seeding Milestones"
+echo "  Step 4: Seeding Milestones"
 echo "========================================"
 if check_empty "milestones"; then
     if ! check_empty "countries"; then
@@ -108,9 +122,9 @@ else
 fi
 echo ""
 
-# 4. Seed Missions (depends on countries)
+# 5. Seed Missions (depends on countries)
 echo "========================================"
-echo "  Step 4: Seeding Missions"
+echo "  Step 5: Seeding Missions"
 echo "========================================"
 if check_empty "missions"; then
     if ! check_empty "countries"; then
@@ -125,9 +139,9 @@ else
 fi
 echo ""
 
-# 5. Seed Satellites (depends on countries)
+# 6. Seed Satellites (depends on countries)
 echo "========================================"
-echo "  Step 5: Seeding Satellites"
+echo "  Step 6: Seeding Satellites"
 echo "========================================"
 if check_empty "satellites"; then
     if ! check_empty "countries"; then
@@ -142,9 +156,9 @@ else
 fi
 echo ""
 
-# 6. Seed Launch Sites (depends on countries)
+# 7. Seed Launch Sites (depends on countries)
 echo "========================================"
-echo "  Step 6: Seeding Launch Sites"
+echo "  Step 7: Seeding Launch Sites"
 echo "========================================"
 if check_empty "launch-sites"; then
     if ! check_empty "countries"; then
@@ -163,12 +177,13 @@ echo ""
 echo "========================================"
 echo "  Final Database Status"
 echo "========================================"
-echo "Engines:      $(count_entities engines)"
-echo "Countries:    $(count_entities countries)"
-echo "Milestones:   $(count_entities milestones)"
-echo "Missions:     $(count_entities missions)"
-echo "Satellites:   $(count_entities satellites)"
-echo "Launch Sites: $(count_entities launch-sites)"
+echo "Engines:         $(count_entities engines)"
+echo "Countries:       $(count_entities countries)"
+echo "Launch Vehicles: $(count_entities launch-vehicles)"
+echo "Milestones:      $(count_entities milestones)"
+echo "Missions:        $(count_entities missions)"
+echo "Satellites:      $(count_entities satellites)"
+echo "Launch Sites:    $(count_entities launch-sites)"
 echo ""
 echo "Seeding complete!"
 echo ""

@@ -49,16 +49,25 @@ public class CountryController {
         return ResponseEntity.ok(countryService.getAllCountries());
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<Country> getCountryById(@PathVariable Long id) {
-        Optional<Country> country = countryService.getCountryById(id);
-        return country.map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+    @GetMapping("/{idOrCode}")
+    public ResponseEntity<Country> getCountryByIdOrCode(@PathVariable String idOrCode) {
+        // Try to parse as Long (numeric ID)
+        try {
+            Long id = Long.parseLong(idOrCode);
+            Optional<Country> country = countryService.getCountryById(id);
+            return country.map(ResponseEntity::ok)
+                    .orElseGet(() -> ResponseEntity.notFound().build());
+        } catch (NumberFormatException e) {
+            // Not a number, treat as ISO code
+            Optional<Country> country = countryService.getCountryByIsoCode(idOrCode.toUpperCase());
+            return country.map(ResponseEntity::ok)
+                    .orElseGet(() -> ResponseEntity.notFound().build());
+        }
     }
 
     @GetMapping("/by-code/{isoCode}")
     public ResponseEntity<Country> getCountryByIsoCode(@PathVariable String isoCode) {
-        Optional<Country> country = countryService.getCountryByIsoCode(isoCode);
+        Optional<Country> country = countryService.getCountryByIsoCode(isoCode.toUpperCase());
         return country.map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }

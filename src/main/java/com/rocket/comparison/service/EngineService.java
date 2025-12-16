@@ -61,7 +61,14 @@ public class EngineService {
     }
 
     public List<Engine> getEnginesByCountryCode(String isoCode) {
-        return engineRepository.findByCountryIsoCode(isoCode.toUpperCase());
+        String upperCode = isoCode.toUpperCase();
+        // First try by country relationship
+        List<Engine> engines = engineRepository.findByCountryIsoCode(upperCode);
+        // If no results, fall back to origin field (legacy data)
+        if (engines.isEmpty()) {
+            engines = engineRepository.findByOrigin(upperCode);
+        }
+        return engines;
     }
 
     public List<Engine> getEnginesByOrigin(String origin) {
