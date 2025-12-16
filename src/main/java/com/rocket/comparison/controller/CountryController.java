@@ -122,6 +122,29 @@ public class CountryController {
 
     // ==================== Country Related Entities ====================
 
+    /**
+     * Aggregated endpoint - returns all country data in a single request
+     * This is the preferred endpoint for country detail pages to minimize API calls
+     */
+    @GetMapping("/{idOrCode}/details")
+    public ResponseEntity<CountryDetails> getCountryDetails(@PathVariable String idOrCode) {
+        Optional<Country> countryOpt = resolveCountry(idOrCode);
+        if (countryOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Country country = countryOpt.get();
+        String isoCode = country.getIsoCode();
+
+        return ResponseEntity.ok(new CountryDetails(
+            country,
+            engineService.getEnginesByCountryCode(isoCode),
+            launchVehicleService.getLaunchVehiclesByCountryCode(isoCode),
+            spaceMissionService.getMissionsByCountryCode(isoCode),
+            spaceMilestoneService.getMilestonesByCountryCode(isoCode)
+        ));
+    }
+
     @GetMapping("/{idOrCode}/engines")
     public ResponseEntity<List<Engine>> getCountryEngines(@PathVariable String idOrCode) {
         String isoCode = resolveToIsoCode(idOrCode);
@@ -159,18 +182,22 @@ public class CountryController {
     }
 
     /**
+     * Helper method to resolve ID or ISO code to Country
+     */
+    private Optional<Country> resolveCountry(String idOrCode) {
+        try {
+            Long id = Long.parseLong(idOrCode);
+            return countryService.getCountryById(id);
+        } catch (NumberFormatException e) {
+            return countryService.getCountryByIsoCode(idOrCode.toUpperCase());
+        }
+    }
+
+    /**
      * Helper method to resolve ID or ISO code to ISO code
      */
     private String resolveToIsoCode(String idOrCode) {
-        try {
-            Long id = Long.parseLong(idOrCode);
-            Optional<Country> country = countryService.getCountryById(id);
-            return country.map(Country::getIsoCode).orElse(null);
-        } catch (NumberFormatException e) {
-            // It's an ISO code, verify it exists
-            Optional<Country> country = countryService.getCountryByIsoCode(idOrCode.toUpperCase());
-            return country.map(Country::getIsoCode).orElse(null);
-        }
+        return resolveCountry(idOrCode).map(Country::getIsoCode).orElse(null);
     }
 
     // ==================== Region Queries ====================
@@ -274,6 +301,18 @@ public class CountryController {
     }
 
     // ==================== DTOs ====================
+
+    /**
+     * Aggregated country details for single-request country pages
+     * Reduces frontend API calls from 6+ to 1
+     */
+    public record CountryDetails(
+            Country country,
+            List<Engine> engines,
+            List<LaunchVehicle> launchVehicles,
+            List<SpaceMission> missions,
+            List<SpaceMilestone> milestones
+    ) {}
 
     public record CountryComparisonResult(List<Country> countries) {}
 
