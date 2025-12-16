@@ -5,6 +5,7 @@ import com.rocket.comparison.integration.spacedevs.SpaceDevsSyncService;
 import com.rocket.comparison.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -34,6 +35,15 @@ public class DataSeeder implements CommandLineRunner {
     private final LaunchSiteRepository launchSiteRepository;
     private final CapabilityScoreRepository capabilityScoreRepository;
     private final SpaceDevsSyncService spaceDevsSyncService;
+
+    @Value("${sync.external.enabled:true}")
+    private boolean externalSyncEnabled;
+
+    @Value("${sync.external.missions-limit:200}")
+    private int missionsLimit;
+
+    @Value("${sync.external.sites-limit:100}")
+    private int sitesLimit;
 
     private Map<String, Country> countryMap = new HashMap<>();
 
@@ -104,17 +114,24 @@ public class DataSeeder implements CommandLineRunner {
     /**
      * Syncs additional data from TheSpaceDevs API.
      * Runs after initial seeding to enrich the database with real launch data.
+     * Can be disabled via sync.external.enabled=false property (BE-060).
      */
     private void syncFromExternalApi() {
+        if (!externalSyncEnabled) {
+            log.info("External API sync is disabled (sync.external.enabled=false)");
+            return;
+        }
+
         try {
-            log.info("Starting automatic sync from TheSpaceDevs API...");
+            log.info("Starting automatic sync from TheSpaceDevs API (missions={}, sites={})...",
+                missionsLimit, sitesLimit);
 
             // Sync recent launches (past missions)
-            var missionResults = spaceDevsSyncService.syncRecentLaunches(200);
+            var missionResults = spaceDevsSyncService.syncRecentLaunches(missionsLimit);
             log.info("Mission sync completed: {}", missionResults);
 
             // Sync launch sites
-            var siteResults = spaceDevsSyncService.syncLaunchSites(100);
+            var siteResults = spaceDevsSyncService.syncLaunchSites(sitesLimit);
             log.info("Launch site sync completed: {}", siteResults);
 
             log.info("External API sync completed successfully!");

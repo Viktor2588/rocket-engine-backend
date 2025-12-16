@@ -1,5 +1,7 @@
 package com.rocket.comparison.controller;
 
+import com.rocket.comparison.api.dto.EngineSummaryDto;
+import com.rocket.comparison.api.mapper.EngineMapper;
 import com.rocket.comparison.entity.Engine;
 import com.rocket.comparison.service.EngineService;
 import jakarta.validation.Valid;
@@ -21,6 +23,7 @@ import java.util.Optional;
 public class EngineController {
 
     private final EngineService engineService;
+    private final EngineMapper engineMapper;
 
     @GetMapping
     public ResponseEntity<?> getAllEngines(
@@ -31,18 +34,18 @@ public class EngineController {
             @RequestParam(required = false) Boolean unpaged) {
         // If unpaged=true, return simple list (for frontend compatibility)
         if (Boolean.TRUE.equals(unpaged)) {
-            return ResponseEntity.ok(engineService.getAllEngines());
+            return ResponseEntity.ok(engineMapper.toSummaryDtoList(engineService.getAllEngines()));
         }
         Sort sort = sortDir.equalsIgnoreCase("desc")
             ? Sort.by(sortBy).descending()
             : Sort.by(sortBy).ascending();
         Pageable pageable = PageRequest.of(page, Math.min(size, 100), sort);
-        return ResponseEntity.ok(engineService.getAllEngines(pageable));
+        return ResponseEntity.ok(engineMapper.toSummaryDtoPage(engineService.getAllEngines(pageable)));
     }
 
     @GetMapping({"/all", "/list"})
-    public ResponseEntity<List<Engine>> getAllEnginesUnpaged() {
-        return ResponseEntity.ok(engineService.getAllEngines());
+    public ResponseEntity<List<EngineSummaryDto>> getAllEnginesUnpaged() {
+        return ResponseEntity.ok(engineMapper.toSummaryDtoList(engineService.getAllEngines()));
     }
 
     @GetMapping("/{id}")
@@ -78,39 +81,39 @@ public class EngineController {
     }
 
     @GetMapping("/designer/{designer}")
-    public ResponseEntity<List<Engine>> getEnginesByDesigner(@PathVariable String designer) {
-        return ResponseEntity.ok(engineService.getEnginesByDesigner(designer));
+    public ResponseEntity<List<EngineSummaryDto>> getEnginesByDesigner(@PathVariable String designer) {
+        return ResponseEntity.ok(engineMapper.toSummaryDtoList(engineService.getEnginesByDesigner(designer)));
     }
 
     @GetMapping("/propellant/{propellant}")
-    public ResponseEntity<List<Engine>> getEnginesByPropellant(@PathVariable String propellant) {
-        return ResponseEntity.ok(engineService.getEnginesByPropellant(propellant));
+    public ResponseEntity<List<EngineSummaryDto>> getEnginesByPropellant(@PathVariable String propellant) {
+        return ResponseEntity.ok(engineMapper.toSummaryDtoList(engineService.getEnginesByPropellant(propellant)));
     }
 
     @GetMapping("/thrust-min/{thrust}")
-    public ResponseEntity<List<Engine>> getEnginesByMinThrust(@PathVariable Long thrust) {
-        return ResponseEntity.ok(engineService.getEnginesByMinThrust(thrust));
+    public ResponseEntity<List<EngineSummaryDto>> getEnginesByMinThrust(@PathVariable Long thrust) {
+        return ResponseEntity.ok(engineMapper.toSummaryDtoList(engineService.getEnginesByMinThrust(thrust)));
     }
 
     @GetMapping("/isp-min/{isp}")
-    public ResponseEntity<List<Engine>> getEnginesByMinIsp(@PathVariable Double isp) {
-        return ResponseEntity.ok(engineService.getEnginesByMinIsp(isp));
+    public ResponseEntity<List<EngineSummaryDto>> getEnginesByMinIsp(@PathVariable Double isp) {
+        return ResponseEntity.ok(engineMapper.toSummaryDtoList(engineService.getEnginesByMinIsp(isp)));
     }
 
     // Country-based endpoints
     @GetMapping("/by-country/{countryId}")
-    public ResponseEntity<List<Engine>> getEnginesByCountryId(@PathVariable Long countryId) {
-        return ResponseEntity.ok(engineService.getEnginesByCountryId(countryId));
+    public ResponseEntity<List<EngineSummaryDto>> getEnginesByCountryId(@PathVariable Long countryId) {
+        return ResponseEntity.ok(engineMapper.toSummaryDtoList(engineService.getEnginesByCountryId(countryId)));
     }
 
     @GetMapping("/by-country-code/{isoCode}")
-    public ResponseEntity<List<Engine>> getEnginesByCountryCode(@PathVariable String isoCode) {
-        return ResponseEntity.ok(engineService.getEnginesByCountryCode(isoCode));
+    public ResponseEntity<List<EngineSummaryDto>> getEnginesByCountryCode(@PathVariable String isoCode) {
+        return ResponseEntity.ok(engineMapper.toSummaryDtoList(engineService.getEnginesByCountryCode(isoCode)));
     }
 
     @GetMapping("/by-origin/{origin}")
-    public ResponseEntity<List<Engine>> getEnginesByOrigin(@PathVariable String origin) {
-        return ResponseEntity.ok(engineService.getEnginesByOrigin(origin));
+    public ResponseEntity<List<EngineSummaryDto>> getEnginesByOrigin(@PathVariable String origin) {
+        return ResponseEntity.ok(engineMapper.toSummaryDtoList(engineService.getEnginesByOrigin(origin)));
     }
 
     @GetMapping("/compare")

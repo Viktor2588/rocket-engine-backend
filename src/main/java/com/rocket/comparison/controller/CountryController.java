@@ -1,5 +1,10 @@
 package com.rocket.comparison.controller;
 
+import com.rocket.comparison.api.dto.CountryDetailDto;
+import com.rocket.comparison.api.dto.CountryDetailsDto;
+import com.rocket.comparison.api.dto.CountrySummaryDto;
+import com.rocket.comparison.api.mapper.CountryMapper;
+import com.rocket.comparison.api.mapper.EngineMapper;
 import com.rocket.comparison.entity.Country;
 import com.rocket.comparison.entity.Engine;
 import com.rocket.comparison.entity.LaunchVehicle;
@@ -35,6 +40,8 @@ public class CountryController {
     private final LaunchVehicleService launchVehicleService;
     private final SpaceMissionService spaceMissionService;
     private final SpaceMilestoneService spaceMilestoneService;
+    private final CountryMapper countryMapper;
+    private final EngineMapper engineMapper;
 
     // ==================== Basic CRUD ====================
 
@@ -47,18 +54,18 @@ public class CountryController {
             @RequestParam(required = false) Boolean unpaged) {
         // If unpaged=true, return simple list (for frontend compatibility)
         if (Boolean.TRUE.equals(unpaged)) {
-            return ResponseEntity.ok(countryService.getAllCountries());
+            return ResponseEntity.ok(countryMapper.toSummaryDtoList(countryService.getAllCountries()));
         }
         Sort sort = sortDir.equalsIgnoreCase("desc")
             ? Sort.by(sortBy).descending()
             : Sort.by(sortBy).ascending();
         Pageable pageable = PageRequest.of(page, Math.min(size, 100), sort);
-        return ResponseEntity.ok(countryService.getAllCountries(pageable));
+        return ResponseEntity.ok(countryMapper.toSummaryDtoPage(countryService.getAllCountries(pageable)));
     }
 
     @GetMapping({"/all", "/list"})
-    public ResponseEntity<List<Country>> getAllCountriesUnpaged() {
-        return ResponseEntity.ok(countryService.getAllCountries());
+    public ResponseEntity<List<CountrySummaryDto>> getAllCountriesUnpaged() {
+        return ResponseEntity.ok(countryMapper.toSummaryDtoList(countryService.getAllCountries()));
     }
 
     @GetMapping("/{idOrCode}")
@@ -123,11 +130,12 @@ public class CountryController {
     // ==================== Country Related Entities ====================
 
     /**
-     * Aggregated endpoint - returns all country data in a single request
+     * Aggregated endpoint - returns all country data in a single request (BE-050)
      * This is the preferred endpoint for country detail pages to minimize API calls
+     * Returns DTOs instead of full entities for reduced payload size
      */
     @GetMapping("/{idOrCode}/details")
-    public ResponseEntity<CountryDetails> getCountryDetails(@PathVariable String idOrCode) {
+    public ResponseEntity<CountryDetailsDto> getCountryDetails(@PathVariable String idOrCode) {
         Optional<Country> countryOpt = resolveCountry(idOrCode);
         if (countryOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
@@ -136,12 +144,13 @@ public class CountryController {
         Country country = countryOpt.get();
         String isoCode = country.getIsoCode();
 
-        return ResponseEntity.ok(new CountryDetails(
+        return ResponseEntity.ok(countryMapper.toCountryDetailsDto(
             country,
             engineService.getEnginesByCountryCode(isoCode),
             launchVehicleService.getLaunchVehiclesByCountryCode(isoCode),
             spaceMissionService.getMissionsByCountryCode(isoCode),
-            spaceMilestoneService.getMilestonesByCountryCode(isoCode)
+            spaceMilestoneService.getMilestonesByCountryCode(isoCode),
+            engineMapper
         ));
     }
 
@@ -203,57 +212,57 @@ public class CountryController {
     // ==================== Region Queries ====================
 
     @GetMapping("/region/{region}")
-    public ResponseEntity<List<Country>> getCountriesByRegion(@PathVariable String region) {
-        return ResponseEntity.ok(countryService.getCountriesByRegion(region));
+    public ResponseEntity<List<CountrySummaryDto>> getCountriesByRegion(@PathVariable String region) {
+        return ResponseEntity.ok(countryMapper.toSummaryDtoList(countryService.getCountriesByRegion(region)));
     }
 
     // ==================== Capability Filters ====================
 
     @GetMapping("/capability/human-spaceflight")
-    public ResponseEntity<List<Country>> getCountriesWithHumanSpaceflight() {
-        return ResponseEntity.ok(countryService.getCountriesWithHumanSpaceflight());
+    public ResponseEntity<List<CountrySummaryDto>> getCountriesWithHumanSpaceflight() {
+        return ResponseEntity.ok(countryMapper.toSummaryDtoList(countryService.getCountriesWithHumanSpaceflight()));
     }
 
     @GetMapping("/capability/launch")
-    public ResponseEntity<List<Country>> getCountriesWithLaunchCapability() {
-        return ResponseEntity.ok(countryService.getCountriesWithLaunchCapability());
+    public ResponseEntity<List<CountrySummaryDto>> getCountriesWithLaunchCapability() {
+        return ResponseEntity.ok(countryMapper.toSummaryDtoList(countryService.getCountriesWithLaunchCapability()));
     }
 
     @GetMapping("/capability/reusable")
-    public ResponseEntity<List<Country>> getCountriesWithReusableRockets() {
-        return ResponseEntity.ok(countryService.getCountriesWithReusableRockets());
+    public ResponseEntity<List<CountrySummaryDto>> getCountriesWithReusableRockets() {
+        return ResponseEntity.ok(countryMapper.toSummaryDtoList(countryService.getCountriesWithReusableRockets()));
     }
 
     @GetMapping("/capability/deep-space")
-    public ResponseEntity<List<Country>> getCountriesWithDeepSpaceCapability() {
-        return ResponseEntity.ok(countryService.getCountriesWithDeepSpaceCapability());
+    public ResponseEntity<List<CountrySummaryDto>> getCountriesWithDeepSpaceCapability() {
+        return ResponseEntity.ok(countryMapper.toSummaryDtoList(countryService.getCountriesWithDeepSpaceCapability()));
     }
 
     @GetMapping("/capability/space-station")
-    public ResponseEntity<List<Country>> getCountriesWithSpaceStation() {
-        return ResponseEntity.ok(countryService.getCountriesWithSpaceStation());
+    public ResponseEntity<List<CountrySummaryDto>> getCountriesWithSpaceStation() {
+        return ResponseEntity.ok(countryMapper.toSummaryDtoList(countryService.getCountriesWithSpaceStation()));
     }
 
     // ==================== Rankings ====================
 
     @GetMapping("/rankings")
-    public ResponseEntity<List<Country>> getCountryRankings() {
-        return ResponseEntity.ok(countryService.getCountryRankings());
+    public ResponseEntity<List<CountrySummaryDto>> getCountryRankings() {
+        return ResponseEntity.ok(countryMapper.toSummaryDtoList(countryService.getCountryRankings()));
     }
 
     @GetMapping("/rankings/min-score/{minScore}")
-    public ResponseEntity<List<Country>> getCountriesByMinScore(@PathVariable Double minScore) {
-        return ResponseEntity.ok(countryService.getCountriesByMinScore(minScore));
+    public ResponseEntity<List<CountrySummaryDto>> getCountriesByMinScore(@PathVariable Double minScore) {
+        return ResponseEntity.ok(countryMapper.toSummaryDtoList(countryService.getCountriesByMinScore(minScore)));
     }
 
     @GetMapping("/rankings/by-launches")
-    public ResponseEntity<List<Country>> getTopCountriesByLaunches() {
-        return ResponseEntity.ok(countryService.getTopCountriesByLaunches());
+    public ResponseEntity<List<CountrySummaryDto>> getTopCountriesByLaunches() {
+        return ResponseEntity.ok(countryMapper.toSummaryDtoList(countryService.getTopCountriesByLaunches()));
     }
 
     @GetMapping("/rankings/by-success-rate")
-    public ResponseEntity<List<Country>> getTopCountriesBySuccessRate() {
-        return ResponseEntity.ok(countryService.getTopCountriesBySuccessRate());
+    public ResponseEntity<List<CountrySummaryDto>> getTopCountriesBySuccessRate() {
+        return ResponseEntity.ok(countryMapper.toSummaryDtoList(countryService.getTopCountriesBySuccessRate()));
     }
 
     // ==================== Statistics ====================

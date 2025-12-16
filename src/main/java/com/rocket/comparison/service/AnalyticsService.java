@@ -3,6 +3,7 @@ package com.rocket.comparison.service;
 import com.rocket.comparison.entity.*;
 import com.rocket.comparison.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -10,6 +11,7 @@ import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.rocket.comparison.config.CacheConfig.*;
 import static com.rocket.comparison.constants.SpaceConstants.*;
 
 /**
@@ -35,6 +37,7 @@ public class AnalyticsService {
      * Get space budget trends by country
      * Optimized: Uses database-level filtering and sorting
      */
+    @Cacheable(ANALYTICS_CACHE)
     public Map<String, Object> getBudgetTrends() {
         Map<String, Object> result = new LinkedHashMap<>();
 
@@ -83,6 +86,7 @@ public class AnalyticsService {
      * Format: { years: [], byCountry: {}, total: [] }
      * Uses real mission data from database synced from TheSpaceDevs API
      */
+    @Cacheable(ANALYTICS_CACHE)
     public Map<String, Object> getLaunchesPerYear() {
         Map<String, Object> result = new LinkedHashMap<>();
 
@@ -154,6 +158,7 @@ public class AnalyticsService {
     /**
      * Get launches per year broken down by country
      */
+    @Cacheable(ANALYTICS_CACHE)
     public Map<String, Object> getLaunchesPerYearByCountry() {
         Map<String, Object> result = new LinkedHashMap<>();
 
@@ -251,6 +256,7 @@ public class AnalyticsService {
     /**
      * Identify emerging space powers based on recent activity
      */
+    @Cacheable(ANALYTICS_CACHE)
     public Map<String, Object> getEmergingNations() {
         Map<String, Object> result = new LinkedHashMap<>();
 
@@ -316,6 +322,7 @@ public class AnalyticsService {
      * Analyze technology trends in propulsion and space systems
      * Optimized: Uses database-level aggregation instead of loading all entities
      */
+    @Cacheable(ANALYTICS_CACHE)
     public Map<String, Object> getTechnologyTrends() {
         Map<String, Object> result = new LinkedHashMap<>();
 
@@ -370,6 +377,7 @@ public class AnalyticsService {
     /**
      * Get current world records in various categories
      */
+    @Cacheable(RANKINGS_CACHE)
     public Map<String, Object> getRecords() {
         Map<String, Object> records = new LinkedHashMap<>();
 
@@ -518,6 +526,7 @@ public class AnalyticsService {
     /**
      * Get comprehensive analytics summary
      */
+    @Cacheable(ANALYTICS_CACHE)
     public Map<String, Object> getAnalyticsSummary() {
         Map<String, Object> summary = new LinkedHashMap<>();
 

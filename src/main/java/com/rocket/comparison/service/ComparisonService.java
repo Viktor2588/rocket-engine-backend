@@ -4,12 +4,14 @@ import com.rocket.comparison.constants.SpaceConstants;
 import com.rocket.comparison.entity.*;
 import com.rocket.comparison.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.rocket.comparison.config.CacheConfig.*;
 import static com.rocket.comparison.constants.SpaceConstants.*;
 
 /**
@@ -542,106 +544,76 @@ public class ComparisonService {
     }
 
     /**
-     * Get rankings across all countries
+     * Get rankings across all countries (BE-051)
+     * Optimized: Uses database-level sorting via repository queries instead of in-memory sorting
+     * Cached to avoid repeated expensive aggregation queries
      */
+    @Cacheable(RANKINGS_CACHE)
     public Map<String, Object> getCountryRankings() {
         Map<String, Object> rankings = new LinkedHashMap<>();
 
-        List<Country> allCountries = countryRepository.findAll();
-
-        // Overall capability ranking
-        List<Map<String, Object>> byCapability = allCountries.stream()
-            .filter(c -> c.getOverallCapabilityScore() != null)
-            .sorted((a, b) -> Double.compare(b.getOverallCapabilityScore(), a.getOverallCapabilityScore()))
-            .map(c -> {
-                Map<String, Object> entry = new LinkedHashMap<>();
-                entry.put("rank", 0); // Will be filled below
-                entry.put("countryId", c.getId());
-                entry.put("countryName", c.getName());
-                entry.put("isoCode", c.getIsoCode());
-                entry.put("score", c.getOverallCapabilityScore());
-                return entry;
-            })
-            .toList();
-
-        // Add ranks
+        // Overall capability ranking - using database-level ORDER BY
+        List<Country> byCapabilityScore = countryRepository.findAllOrderByCapabilityScoreDesc();
         List<Map<String, Object>> rankedByCapability = new ArrayList<>();
-        for (int i = 0; i < byCapability.size(); i++) {
-            Map<String, Object> entry = new LinkedHashMap<>(byCapability.get(i));
+        for (int i = 0; i < byCapabilityScore.size(); i++) {
+            Country c = byCapabilityScore.get(i);
+            Map<String, Object> entry = new LinkedHashMap<>();
             entry.put("rank", i + 1);
+            entry.put("countryId", c.getId());
+            entry.put("countryName", c.getName());
+            entry.put("isoCode", c.getIsoCode());
+            entry.put("score", c.getOverallCapabilityScore());
             rankedByCapability.add(entry);
         }
         rankings.put("byOverallCapability", rankedByCapability);
 
-        // By total launches
-        List<Map<String, Object>> byLaunches = allCountries.stream()
-            .filter(c -> c.getTotalLaunches() != null && c.getTotalLaunches() > 0)
-            .sorted((a, b) -> Integer.compare(b.getTotalLaunches(), a.getTotalLaunches()))
-            .map(c -> {
-                Map<String, Object> entry = new LinkedHashMap<>();
-                entry.put("countryId", c.getId());
-                entry.put("countryName", c.getName());
-                entry.put("totalLaunches", c.getTotalLaunches());
-                entry.put("successfulLaunches", c.getSuccessfulLaunches());
-                entry.put("successRate", c.getLaunchSuccessRate());
-                return entry;
-            })
-            .toList();
-
+        // By total launches - using database-level ORDER BY
+        List<Country> byLaunchCount = countryRepository.findTopByTotalLaunches();
         List<Map<String, Object>> rankedByLaunches = new ArrayList<>();
-        for (int i = 0; i < byLaunches.size(); i++) {
-            Map<String, Object> entry = new LinkedHashMap<>(byLaunches.get(i));
+        for (int i = 0; i < byLaunchCount.size(); i++) {
+            Country c = byLaunchCount.get(i);
+            Map<String, Object> entry = new LinkedHashMap<>();
             entry.put("rank", i + 1);
+            entry.put("countryId", c.getId());
+            entry.put("countryName", c.getName());
+            entry.put("totalLaunches", c.getTotalLaunches());
+            entry.put("successfulLaunches", c.getSuccessfulLaunches());
+            entry.put("successRate", c.getLaunchSuccessRate());
             rankedByLaunches.add(entry);
         }
         rankings.put("byTotalLaunches", rankedByLaunches);
 
-        // By budget
-        List<Map<String, Object>> byBudget = allCountries.stream()
-            .filter(c -> c.getAnnualBudgetUsd() != null && c.getAnnualBudgetUsd().compareTo(BigDecimal.ZERO) > 0)
-            .sorted((a, b) -> b.getAnnualBudgetUsd().compareTo(a.getAnnualBudgetUsd()))
-            .map(c -> {
-                Map<String, Object> entry = new LinkedHashMap<>();
-                entry.put("countryId", c.getId());
-                entry.put("countryName", c.getName());
-                entry.put("annualBudgetUsd", c.getAnnualBudgetUsd());
-                entry.put("budgetAsPercentOfGdp", c.getBudgetAsPercentOfGdp());
-                return entry;
-            })
-            .toList();
-
+        // By budget - using database-level ORDER BY
+        List<Country> byBudgetAmount = countryRepository.findCountriesWithBudgetOrderByBudgetDesc();
         List<Map<String, Object>> rankedByBudget = new ArrayList<>();
-        for (int i = 0; i < byBudget.size(); i++) {
-            Map<String, Object> entry = new LinkedHashMap<>(byBudget.get(i));
+        for (int i = 0; i < byBudgetAmount.size(); i++) {
+            Country c = byBudgetAmount.get(i);
+            Map<String, Object> entry = new LinkedHashMap<>();
             entry.put("rank", i + 1);
+            entry.put("countryId", c.getId());
+            entry.put("countryName", c.getName());
+            entry.put("annualBudgetUsd", c.getAnnualBudgetUsd());
+            entry.put("budgetAsPercentOfGdp", c.getBudgetAsPercentOfGdp());
             rankedByBudget.add(entry);
         }
         rankings.put("byAnnualBudget", rankedByBudget);
 
-        // By success rate (min 10 launches)
-        List<Map<String, Object>> bySuccessRate = allCountries.stream()
-            .filter(c -> c.getTotalLaunches() != null && c.getTotalLaunches() >= 10)
-            .filter(c -> c.getLaunchSuccessRate() != null)
-            .sorted((a, b) -> Double.compare(b.getLaunchSuccessRate(), a.getLaunchSuccessRate()))
-            .map(c -> {
-                Map<String, Object> entry = new LinkedHashMap<>();
-                entry.put("countryId", c.getId());
-                entry.put("countryName", c.getName());
-                entry.put("successRate", c.getLaunchSuccessRate());
-                entry.put("totalLaunches", c.getTotalLaunches());
-                return entry;
-            })
-            .toList();
-
+        // By success rate - using database-level ORDER BY
+        List<Country> bySuccessRateList = countryRepository.findTopBySuccessRate();
         List<Map<String, Object>> rankedBySuccessRate = new ArrayList<>();
-        for (int i = 0; i < bySuccessRate.size(); i++) {
-            Map<String, Object> entry = new LinkedHashMap<>(bySuccessRate.get(i));
+        for (int i = 0; i < bySuccessRateList.size(); i++) {
+            Country c = bySuccessRateList.get(i);
+            Map<String, Object> entry = new LinkedHashMap<>();
             entry.put("rank", i + 1);
+            entry.put("countryId", c.getId());
+            entry.put("countryName", c.getName());
+            entry.put("successRate", c.getLaunchSuccessRate());
+            entry.put("totalLaunches", c.getTotalLaunches());
             rankedBySuccessRate.add(entry);
         }
         rankings.put("bySuccessRate", rankedBySuccessRate);
 
-        rankings.put("totalCountries", allCountries.size());
+        rankings.put("totalCountries", countryRepository.count());
 
         return rankings;
     }
