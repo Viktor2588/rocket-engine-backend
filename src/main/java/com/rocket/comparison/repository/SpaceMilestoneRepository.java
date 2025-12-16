@@ -59,7 +59,7 @@ public interface SpaceMilestoneRepository extends JpaRepository<SpaceMilestone, 
     @Query("SELECT m FROM SpaceMilestone m WHERE m.isGlobalFirst = true ORDER BY m.dateAchieved ASC")
     List<SpaceMilestone> findFirstAchievers();
 
-    // ==================== Statistics ====================
+    // ==================== Statistics (BE-010: Use DB aggregations) ====================
 
     @Query("SELECT COUNT(m) FROM SpaceMilestone m WHERE m.country.id = :countryId")
     Long countByCountry(@Param("countryId") Long countryId);
@@ -69,6 +69,16 @@ public interface SpaceMilestoneRepository extends JpaRepository<SpaceMilestone, 
 
     @Query("SELECT m.country.id, COUNT(m) FROM SpaceMilestone m WHERE m.globalRank = 1 GROUP BY m.country.id ORDER BY COUNT(m) DESC")
     List<Object[]> countFirstsByCountryRanked();
+
+    // BE-010: Aggregate counts at database level
+    @Query("SELECT COUNT(m) FROM SpaceMilestone m WHERE m.globalRank = 1")
+    long countGlobalFirsts();
+
+    @Query("SELECT m.milestoneType, COUNT(m) FROM SpaceMilestone m GROUP BY m.milestoneType")
+    List<Object[]> countByMilestoneType();
+
+    @Query("SELECT m.era, COUNT(m) FROM SpaceMilestone m WHERE m.era IS NOT NULL GROUP BY m.era")
+    List<Object[]> countByEra();
 
     @Query("SELECT DISTINCT m.year FROM SpaceMilestone m ORDER BY m.year ASC")
     List<Integer> findAllYears();

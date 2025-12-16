@@ -126,7 +126,37 @@ public class SpaceMilestoneService {
         return milestoneRepository.findFirstAchievers();
     }
 
-    // ==================== Statistics ====================
+    // ==================== Statistics (BE-010: Use DB aggregations) ====================
+
+    public long countAll() {
+        return milestoneRepository.count();
+    }
+
+    public long countGlobalFirsts() {
+        return milestoneRepository.countGlobalFirsts();
+    }
+
+    public Map<String, Long> countByCategory() {
+        List<Object[]> results = milestoneRepository.countByMilestoneType();
+        return results.stream()
+                .collect(Collectors.groupingBy(
+                        row -> ((MilestoneType) row[0]).getCategory(),
+                        Collectors.summingLong(row -> (Long) row[1])
+                ));
+    }
+
+    public Map<String, Long> countByEra() {
+        List<Object[]> results = milestoneRepository.countByEra();
+        Map<String, Long> byEra = new LinkedHashMap<>();
+        for (Object[] row : results) {
+            byEra.put((String) row[0], (Long) row[1]);
+        }
+        return byEra;
+    }
+
+    public int countYearsSpanned() {
+        return milestoneRepository.findAllYears().size();
+    }
 
     public Long countMilestonesByCountry(Long countryId) {
         return milestoneRepository.countByCountry(countryId);

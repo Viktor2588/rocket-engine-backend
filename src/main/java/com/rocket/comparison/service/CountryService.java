@@ -136,7 +136,11 @@ public class CountryService {
         return countryRepository.findTopBySuccessRate();
     }
 
-    // Statistics
+    // Statistics - use COUNT queries instead of loading entities (BE-010)
+    public long countAll() {
+        return countryRepository.count();
+    }
+
     public Long countWithLaunchCapability() {
         return countryRepository.countWithLaunchCapability();
     }

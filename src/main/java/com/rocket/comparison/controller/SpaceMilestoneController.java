@@ -208,28 +208,13 @@ public class SpaceMilestoneController {
 
     @GetMapping("/statistics")
     public ResponseEntity<MilestoneStatistics> getStatistics() {
-        List<SpaceMilestone> allMilestones = milestoneService.getAllMilestones();
-        List<SpaceMilestone> globalFirsts = milestoneService.getAllGlobalFirsts();
-
-        Map<String, Long> byCategory = allMilestones.stream()
-                .collect(java.util.stream.Collectors.groupingBy(
-                        m -> m.getMilestoneType().getCategory(),
-                        java.util.stream.Collectors.counting()
-                ));
-
-        Map<String, Long> byEra = allMilestones.stream()
-                .filter(m -> m.getEra() != null)
-                .collect(java.util.stream.Collectors.groupingBy(
-                        SpaceMilestone::getEra,
-                        java.util.stream.Collectors.counting()
-                ));
-
+        // BE-010: Use COUNT queries instead of loading all entities
         return ResponseEntity.ok(new MilestoneStatistics(
-                (long) allMilestones.size(),
-                (long) globalFirsts.size(),
-                milestoneService.getAllYears().size(),
-                byCategory,
-                byEra,
+                milestoneService.countAll(),
+                milestoneService.countGlobalFirsts(),
+                milestoneService.countYearsSpanned(),
+                milestoneService.countByCategory(),
+                milestoneService.countByEra(),
                 milestoneService.getFirstsLeaderboard()
         ));
     }

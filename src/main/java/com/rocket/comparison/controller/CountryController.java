@@ -261,7 +261,8 @@ public class CountryController {
     @GetMapping("/statistics")
     public ResponseEntity<Map<String, Object>> getStatistics() {
         Map<String, Object> stats = new HashMap<>();
-        stats.put("totalCountries", countryService.getAllCountries().size());
+        // BE-010: Use COUNT query instead of loading all entities
+        stats.put("totalCountries", countryService.countAll());
         stats.put("countriesWithLaunchCapability", countryService.countWithLaunchCapability());
         stats.put("countriesWithHumanSpaceflight", countryService.countWithHumanSpaceflight());
         return ResponseEntity.ok(stats);
