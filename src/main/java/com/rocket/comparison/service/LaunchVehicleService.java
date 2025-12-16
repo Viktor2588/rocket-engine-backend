@@ -30,6 +30,10 @@ public class LaunchVehicleService {
         return launchVehicleRepository.findByCountryId(countryId);
     }
 
+    public List<LaunchVehicle> getLaunchVehiclesByCountryCode(String isoCode) {
+        return launchVehicleRepository.findByCountryIsoCode(isoCode.toUpperCase());
+    }
+
     public List<LaunchVehicle> findActive() {
         return launchVehicleRepository.findByActiveTrue();
     }

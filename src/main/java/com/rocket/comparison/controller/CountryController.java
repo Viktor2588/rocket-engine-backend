@@ -1,7 +1,15 @@
 package com.rocket.comparison.controller;
 
 import com.rocket.comparison.entity.Country;
+import com.rocket.comparison.entity.Engine;
+import com.rocket.comparison.entity.LaunchVehicle;
+import com.rocket.comparison.entity.SpaceMilestone;
+import com.rocket.comparison.entity.SpaceMission;
 import com.rocket.comparison.service.CountryService;
+import com.rocket.comparison.service.EngineService;
+import com.rocket.comparison.service.LaunchVehicleService;
+import com.rocket.comparison.service.SpaceMilestoneService;
+import com.rocket.comparison.service.SpaceMissionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -23,6 +31,10 @@ import java.util.Optional;
 public class CountryController {
 
     private final CountryService countryService;
+    private final EngineService engineService;
+    private final LaunchVehicleService launchVehicleService;
+    private final SpaceMissionService spaceMissionService;
+    private final SpaceMilestoneService spaceMilestoneService;
 
     // ==================== Basic CRUD ====================
 
@@ -106,6 +118,59 @@ public class CountryController {
             return ResponseEntity.noContent().build();
         }
         return ResponseEntity.notFound().build();
+    }
+
+    // ==================== Country Related Entities ====================
+
+    @GetMapping("/{idOrCode}/engines")
+    public ResponseEntity<List<Engine>> getCountryEngines(@PathVariable String idOrCode) {
+        String isoCode = resolveToIsoCode(idOrCode);
+        if (isoCode == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(engineService.getEnginesByCountryCode(isoCode));
+    }
+
+    @GetMapping("/{idOrCode}/launch-vehicles")
+    public ResponseEntity<List<LaunchVehicle>> getCountryLaunchVehicles(@PathVariable String idOrCode) {
+        String isoCode = resolveToIsoCode(idOrCode);
+        if (isoCode == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(launchVehicleService.getLaunchVehiclesByCountryCode(isoCode));
+    }
+
+    @GetMapping("/{idOrCode}/missions")
+    public ResponseEntity<List<SpaceMission>> getCountryMissions(@PathVariable String idOrCode) {
+        String isoCode = resolveToIsoCode(idOrCode);
+        if (isoCode == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(spaceMissionService.getMissionsByCountryCode(isoCode));
+    }
+
+    @GetMapping("/{idOrCode}/milestones")
+    public ResponseEntity<List<SpaceMilestone>> getCountryMilestones(@PathVariable String idOrCode) {
+        String isoCode = resolveToIsoCode(idOrCode);
+        if (isoCode == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(spaceMilestoneService.getMilestonesByCountryCode(isoCode));
+    }
+
+    /**
+     * Helper method to resolve ID or ISO code to ISO code
+     */
+    private String resolveToIsoCode(String idOrCode) {
+        try {
+            Long id = Long.parseLong(idOrCode);
+            Optional<Country> country = countryService.getCountryById(id);
+            return country.map(Country::getIsoCode).orElse(null);
+        } catch (NumberFormatException e) {
+            // It's an ISO code, verify it exists
+            Optional<Country> country = countryService.getCountryByIsoCode(idOrCode.toUpperCase());
+            return country.map(Country::getIsoCode).orElse(null);
+        }
     }
 
     // ==================== Region Queries ====================

@@ -13,6 +13,8 @@ public interface LaunchVehicleRepository extends JpaRepository<LaunchVehicle, Lo
 
     List<LaunchVehicle> findByCountryId(Long countryId);
 
+    List<LaunchVehicle> findByCountryIsoCode(String isoCode);
+
     List<LaunchVehicle> findByActiveTrue();
 
     List<LaunchVehicle> findByReusableTrue();
