@@ -17,6 +17,9 @@ public class EngineMapper {
     public EngineSummaryDto toSummaryDto(Engine engine) {
         if (engine == null) return null;
 
+        // Calculate thrust in kN for display
+        Double thrustKn = engine.getThrustN() != null ? engine.getThrustN() / 1000.0 : null;
+
         return EngineSummaryDto.builder()
                 .id(engine.getId())
                 .name(engine.getName())
@@ -25,8 +28,14 @@ public class EngineMapper {
                 .propellant(engine.getPropellant())
                 .status(engine.getStatus())
                 .ispS(engine.getIsp_s())
+                .ispVacuum(engine.getIsp_s())  // Same value for now, vacuum ISP
                 .thrustN(engine.getThrustN())
+                .thrustKn(thrustKn)
                 .thrustToWeightRatio(engine.calculateThrustToWeightRatio())
+                .powerCycle(engine.getPowerCycle())
+                .massKg(engine.getMassKg())
+                .vehicle(engine.getVehicle())
+                .use(engine.getUse())
                 .build();
     }
 
