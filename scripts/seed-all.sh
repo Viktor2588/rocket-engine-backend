@@ -32,7 +32,7 @@ count_entities() {
 
 # Wait for API to be ready
 echo "Checking API availability..."
-max_attempts=30
+max_attempts=60
 attempt=0
 while [ $attempt -lt $max_attempts ]; do
     if curl -s "$API_URL/api/engines" > /dev/null 2>&1; then
@@ -45,8 +45,11 @@ while [ $attempt -lt $max_attempts ]; do
 done
 
 if [ $attempt -eq $max_attempts ]; then
-    echo "API not available after $max_attempts attempts. Exiting."
-    exit 1
+    echo "API not available after $max_attempts attempts."
+    echo "Skipping seeding - data may need to be seeded manually."
+    # Don't exit 1 - allow container to continue running
+    # The API should still function, just without seed data
+    exit 0
 fi
 
 echo ""

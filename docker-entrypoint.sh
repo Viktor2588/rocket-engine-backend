@@ -24,8 +24,9 @@ while [ $attempt -lt $max_attempts ]; do
 done
 
 if [ $attempt -eq $max_attempts ]; then
-    echo "Application startup check timed out, but continuing anyway..."
-    sleep 10
+    echo "Application startup check timed out after $max_attempts seconds."
+    echo "Waiting 30 more seconds before running seed scripts..."
+    sleep 30
 fi
 
 # Run the master seeding script
