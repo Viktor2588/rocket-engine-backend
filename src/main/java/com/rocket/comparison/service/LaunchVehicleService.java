@@ -15,11 +15,11 @@ public class LaunchVehicleService {
     private final LaunchVehicleRepository launchVehicleRepository;
 
     public List<LaunchVehicle> findAll() {
-        return launchVehicleRepository.findAll();
+        return launchVehicleRepository.findAllWithCountry();
     }
 
     public Optional<LaunchVehicle> findById(Long id) {
-        return launchVehicleRepository.findById(id);
+        return launchVehicleRepository.findByIdWithCountry(id);
     }
 
     public Optional<LaunchVehicle> findByName(String name) {
