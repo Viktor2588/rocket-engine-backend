@@ -1,6 +1,6 @@
-# Truth Ledger Contracts
+# API Contracts
 
-The data contracts for this project are maintained in a separate repository.
+The API contracts defining entities, endpoints, DTOs, and validation rules are maintained in a separate repository.
 
 ## Location
 
@@ -8,25 +8,54 @@ The data contracts for this project are maintained in a separate repository.
 ../rocket-engine-contract/
 ```
 
-## Contents
+## Contract Structure
 
-| Path | Description |
-|------|-------------|
-| `manifest.yaml` | Master config: entities, sources, SLAs |
-| `queries/*.yaml` | Query contracts (lookup, temporal, explainability, conflicts, ranking, search) |
-| `invariants/*.yaml` | Data invariants (referential, temporal, scoring) |
-| `schema/truth-ledger-v1.sql` | PostgreSQL schema satisfying all contracts |
+```
+rocket-engine-contract/
+├── manifest.yaml           # API configuration and metadata
+├── entities/               # Entity definitions (JPA models)
+│   ├── engine.yaml
+│   ├── country.yaml
+│   ├── launch_vehicle.yaml
+│   ├── satellite.yaml
+│   ├── launch_site.yaml
+│   ├── space_mission.yaml
+│   ├── space_milestone.yaml
+│   └── capability_score.yaml
+├── endpoints/              # REST API endpoint definitions
+│   ├── engines.yaml
+│   ├── countries.yaml
+│   ├── launch-vehicles.yaml
+│   ├── satellites.yaml
+│   ├── launch-sites.yaml
+│   ├── missions.yaml
+│   └── milestones.yaml
+└── enums/
+    └── common.yaml         # All enum type definitions
+```
 
-## Usage
+## What Contracts Define
 
-1. **Schema Migration**: Copy `schema/truth-ledger-v1.sql` to `src/main/resources/db/migration/`
-2. **API Implementation**: Implement query contracts as REST endpoints
-3. **Validation**: Enforce invariants in JPA entities and application layer
+| Contract Type | Defines |
+|---------------|---------|
+| **Entities** | Fields, types, validation rules, relationships, indexes |
+| **Endpoints** | HTTP methods, paths, parameters, request/response schemas |
+| **DTOs** | Summary objects, comparison results, statistics |
+| **Enums** | Status types, categories, orbit types, mission types |
+
+## Implementation Mapping
+
+| Contract | Backend Implementation |
+|----------|----------------------|
+| `entities/*.yaml` | `src/main/java/.../entity/*.java` |
+| `endpoints/*.yaml` | `src/main/java/.../controller/*.java` |
+| `enums/common.yaml` | `src/main/java/.../entity/*.java` (enum classes) |
 
 ## Keeping in Sync
 
 When contracts change:
 1. Pull latest from `rocket-engine-contract`
-2. Update Flyway migrations if schema changed
-3. Update API endpoints if query contracts changed
-4. Update validation if invariants changed
+2. Update JPA entities if entity contracts changed
+3. Update controllers if endpoint contracts changed
+4. Update DTOs if response schemas changed
+5. Run tests to verify compliance
