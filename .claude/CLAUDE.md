@@ -14,8 +14,10 @@ Spring Boot REST API for space exploration data comparison.
 **IMPORTANT**: This project must fulfill the contracts defined in:
 
 ```
-../rocket-engine-contract/
+contracts/                    # Git submodule
 ```
+
+**Remote**: https://github.com/Viktor2588/rocket-engine-contract.git
 
 ### Contract Repository Structure
 

@@ -5,13 +5,15 @@ The API contracts defining entities, endpoints, DTOs, and validation rules are m
 ## Location
 
 ```
-../rocket-engine-contract/
+contracts/                    # Git submodule
 ```
+
+**Remote**: https://github.com/Viktor2588/rocket-engine-contract.git
 
 ## Contract Structure
 
 ```
-rocket-engine-contract/
+contracts/
 ├── manifest.yaml           # API configuration and metadata
 ├── entities/               # Entity definitions (JPA models)
 │   ├── engine.yaml
@@ -54,7 +56,7 @@ rocket-engine-contract/
 ## Keeping in Sync
 
 When contracts change:
-1. Pull latest from `rocket-engine-contract`
+1. Update submodule: `git submodule update --remote contracts`
 2. Update JPA entities if entity contracts changed
 3. Update controllers if endpoint contracts changed
 4. Update DTOs if response schemas changed
