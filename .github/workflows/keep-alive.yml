@@ -1,0 +1,19 @@
+name: Keep Render Alive
+
+on:
+  schedule:
+    # Run every 14 minutes to prevent Render free tier spindown (15 min timeout)
+    - cron: '*/14 * * * *'
+  workflow_dispatch: # Allow manual trigger for testing
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping health endpoint
+        run: |
+          response=$(curl -s -o /dev/null -w "%{http_code}" https://rocket-engine-backend.onrender.com/actuator/health)
+          echo "Health check response: $response"
+          if [ "$response" != "200" ]; then
+            echo "Warning: Health check returned $response"
+          fi
