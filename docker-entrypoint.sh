@@ -5,6 +5,9 @@ set -e
 # Render format: postgres://user:password@host:port/database
 # Spring format: jdbc:postgresql://host:port/database (with separate user/password)
 if [ -n "$DATABASE_URL" ]; then
+    # Strip any newlines or carriage returns from DATABASE_URL (handles copy-paste issues)
+    DATABASE_URL=$(echo "$DATABASE_URL" | tr -d '\n\r' | xargs)
+
     # Extract components from DATABASE_URL
     # Remove the protocol prefix
     DB_URL_NO_PROTO=$(echo "$DATABASE_URL" | sed 's|^postgres://||; s|^postgresql://||')
