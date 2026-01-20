@@ -1,15 +1,30 @@
 package com.rocket.comparison.repository;
 
 import com.rocket.comparison.entity.Engine;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface EngineRepository extends JpaRepository<Engine, Long> {
+
+    // Parent-only queries (for main list views - excludes variants)
+    @EntityGraph(attributePaths = {"country", "variants"})
+    @Query("SELECT e FROM Engine e WHERE e.parent IS NULL")
+    List<Engine> findAllParentsWithCountry();
+
+    @EntityGraph(attributePaths = {"country", "variants"})
+    @Query("SELECT e FROM Engine e WHERE e.id = :id")
+    Optional<Engine> findByIdWithVariants(Long id);
+
+    // Find variants for a parent
+    List<Engine> findByParentId(Long parentId);
+
     List<Engine> findByDesigner(String designer);
     List<Engine> findByPropellant(String propellant);
     List<Engine> findByThrustNGreaterThan(Long thrust);

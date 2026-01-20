@@ -14,12 +14,26 @@ public class LaunchVehicleService {
 
     private final LaunchVehicleRepository launchVehicleRepository;
 
+    /**
+     * Returns only parent entities (excludes variants) for main list views.
+     */
     public List<LaunchVehicle> findAll() {
+        return launchVehicleRepository.findAllParentsWithCountry();
+    }
+
+    /**
+     * Returns all entities including variants (legacy behavior).
+     */
+    public List<LaunchVehicle> findAllIncludingVariants() {
         return launchVehicleRepository.findAllWithCountry();
     }
 
     public Optional<LaunchVehicle> findById(Long id) {
-        return launchVehicleRepository.findByIdWithCountry(id);
+        return launchVehicleRepository.findByIdWithVariants(id);
+    }
+
+    public List<LaunchVehicle> findVariants(Long parentId) {
+        return launchVehicleRepository.findByParentId(parentId);
     }
 
     public Optional<LaunchVehicle> findByName(String name) {

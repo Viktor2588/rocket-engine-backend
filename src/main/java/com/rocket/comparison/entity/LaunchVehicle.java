@@ -8,6 +8,8 @@ import lombok.NoArgsConstructor;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Represents a launch vehicle (rocket) used for space launches.
@@ -47,6 +49,16 @@ public class LaunchVehicle {
     @JoinColumn(name = "country_id")
     @JsonIgnoreProperties({"engines", "description", "hibernateLazyInitializer", "handler"})
     private Country country;
+
+    // Self-referential relationship for parent/variant hierarchy
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_id")
+    @JsonIgnoreProperties({"variants", "parent", "hibernateLazyInitializer", "handler"})
+    private LaunchVehicle parent;
+
+    @OneToMany(mappedBy = "parent", fetch = FetchType.LAZY)
+    @JsonIgnoreProperties({"parent", "variants", "hibernateLazyInitializer", "handler"})
+    private List<LaunchVehicle> variants = new ArrayList<>();
 
     @Column
     private String manufacturer;

@@ -18,7 +18,17 @@ public class EngineService {
 
     private final EngineRepository engineRepository;
 
+    /**
+     * Returns only parent entities (excludes variants) for main list views.
+     */
     public List<Engine> getAllEngines() {
+        return engineRepository.findAllParentsWithCountry();
+    }
+
+    /**
+     * Returns all entities including variants (legacy behavior).
+     */
+    public List<Engine> getAllEnginesIncludingVariants() {
         return engineRepository.findAll();
     }
 
@@ -27,7 +37,11 @@ public class EngineService {
     }
 
     public Optional<Engine> getEngineById(Long id) {
-        return engineRepository.findById(id);
+        return engineRepository.findByIdWithVariants(id);
+    }
+
+    public List<Engine> getVariants(Long parentId) {
+        return engineRepository.findByParentId(parentId);
     }
 
     @Transactional

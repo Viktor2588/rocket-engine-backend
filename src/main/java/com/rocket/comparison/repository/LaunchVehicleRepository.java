@@ -21,6 +21,18 @@ public interface LaunchVehicleRepository extends JpaRepository<LaunchVehicle, Lo
     @Query("SELECT lv FROM LaunchVehicle lv WHERE lv.id = :id")
     Optional<LaunchVehicle> findByIdWithCountry(Long id);
 
+    // Parent-only queries (for main list views - excludes variants)
+    @EntityGraph(attributePaths = {"country", "variants"})
+    @Query("SELECT lv FROM LaunchVehicle lv WHERE lv.parent IS NULL")
+    List<LaunchVehicle> findAllParentsWithCountry();
+
+    @EntityGraph(attributePaths = {"country", "variants"})
+    @Query("SELECT lv FROM LaunchVehicle lv WHERE lv.id = :id")
+    Optional<LaunchVehicle> findByIdWithVariants(Long id);
+
+    // Find variants for a parent
+    List<LaunchVehicle> findByParentId(Long parentId);
+
     List<LaunchVehicle> findByCountryId(Long countryId);
 
     List<LaunchVehicle> findByCountryIsoCode(String isoCode);

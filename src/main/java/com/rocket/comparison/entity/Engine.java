@@ -8,6 +8,9 @@ import lombok.NoArgsConstructor;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Table(name = "engines", indexes = {
     @Index(name = "idx_engine_designer", columnList = "designer"),
@@ -39,6 +42,19 @@ public class Engine {
     @JoinColumn(name = "country_id", nullable = true)
     @JsonIgnoreProperties({"engines", "description", "hibernateLazyInitializer", "handler"})
     private Country country;
+
+    // Self-referential relationship for parent/variant hierarchy
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_id")
+    @JsonIgnoreProperties({"variants", "parent", "hibernateLazyInitializer", "handler"})
+    private Engine parent;
+
+    @OneToMany(mappedBy = "parent", fetch = FetchType.LAZY)
+    @JsonIgnoreProperties({"parent", "variants", "hibernateLazyInitializer", "handler"})
+    private List<Engine> variants = new ArrayList<>();
+
+    @Column(nullable = true)
+    private String family; // e.g., "Merlin", "Raptor", "RD-170"
 
     @Column(nullable = true)
     private String designer; // e.g., "SpaceX", "NPO Energomash"
