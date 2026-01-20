@@ -7,6 +7,10 @@
     "reseed": "node scripts/reseed.mjs",
     "reseed:engines": "node scripts/reseed.mjs --engines",
     "reseed:vehicles": "node scripts/reseed.mjs --vehicles",
-    "reseed:local": "node scripts/reseed.mjs --local"
+    "reseed:local": "node scripts/reseed.mjs --local",
+    "sync": "node scripts/sync-truth-ledger.mjs",
+    "sync:engines": "node scripts/sync-truth-ledger.mjs --engines",
+    "sync:vehicles": "node scripts/sync-truth-ledger.mjs --vehicles",
+    "sync:local": "node scripts/sync-truth-ledger.mjs --local"
   }
 }

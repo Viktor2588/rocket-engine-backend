@@ -187,6 +187,65 @@ public class TruthLedgerClient {
     }
 
     /**
+     * List all entities from Truth Ledger with optional filtering
+     * @param entityType Optional filter by type (engine, launch_vehicle, etc.)
+     * @param limit Maximum number of entities to return
+     * @param offset Pagination offset
+     */
+    @CircuitBreaker(name = RESILIENCE_CONFIG, fallbackMethod = "listEntitiesFallback")
+    @Retry(name = RESILIENCE_CONFIG)
+    @RateLimiter(name = RESILIENCE_CONFIG)
+    public EntityListResponseDto listEntities(String entityType, int limit, int offset) {
+        StringBuilder urlBuilder = new StringBuilder(baseUrl).append("/entities?");
+        urlBuilder.append("limit=").append(limit);
+        urlBuilder.append("&offset=").append(offset);
+        if (entityType != null && !entityType.isEmpty()) {
+            urlBuilder.append("&type=").append(entityType);
+        }
+        String url = urlBuilder.toString();
+        log.debug("Listing entities from Truth Ledger: {}", url);
+
+        try {
+            ResponseEntity<EntityListResponseDto> response = restTemplate.exchange(
+                url,
+                HttpMethod.GET,
+                null,
+                EntityListResponseDto.class
+            );
+            return response.getBody() != null ? response.getBody() : new EntityListResponseDto();
+        } catch (Exception e) {
+            log.warn("Failed to list entities: {}", e.getMessage());
+            throw e;
+        }
+    }
+
+    /**
+     * List all entities of a specific type (pages through all results)
+     */
+    public List<EntityListResponseDto.TruthLedgerEntityDto> listAllEntitiesByType(String entityType) {
+        List<EntityListResponseDto.TruthLedgerEntityDto> allEntities = new java.util.ArrayList<>();
+        int offset = 0;
+        int limit = 100;
+
+        while (true) {
+            EntityListResponseDto response = listEntities(entityType, limit, offset);
+            if (response.getEntities() == null || response.getEntities().isEmpty()) {
+                break;
+            }
+            allEntities.addAll(response.getEntities());
+            offset += limit;
+
+            // Safety check - if we got less than limit, we're done
+            if (response.getEntities().size() < limit) {
+                break;
+            }
+        }
+
+        log.info("Retrieved {} total {} entities from Truth Ledger", allEntities.size(), entityType);
+        return allEntities;
+    }
+
+    /**
      * Health check for Truth Ledger service
      */
     public boolean isHealthy() {
@@ -243,5 +302,12 @@ public class TruthLedgerClient {
     private Optional<EntityFactsResponseDto.EntityDto> findEntityByEngineIdFallback(Long engineId, Exception e) {
         log.warn("Circuit breaker triggered for findEntityByEngineId({}). Error: {}", engineId, e.getMessage());
         return Optional.empty();
+    }
+
+    @SuppressWarnings("unused")
+    private EntityListResponseDto listEntitiesFallback(String entityType, int limit, int offset, Exception e) {
+        log.warn("Circuit breaker triggered for listEntities(type={}, limit={}, offset={}). Error: {}",
+            entityType, limit, offset, e.getMessage());
+        return new EntityListResponseDto();
     }
 }

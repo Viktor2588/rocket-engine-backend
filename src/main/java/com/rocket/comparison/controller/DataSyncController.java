@@ -2,6 +2,7 @@ package com.rocket.comparison.controller;
 
 import com.rocket.comparison.config.seeder.*;
 import com.rocket.comparison.integration.spacedevs.SpaceDevsSyncService;
+import com.rocket.comparison.integration.truthledger.TruthLedgerSyncService;
 import com.rocket.comparison.repository.EngineRepository;
 import com.rocket.comparison.repository.LaunchVehicleRepository;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,7 @@ import java.util.Map;
 public class DataSyncController {
 
     private final SpaceDevsSyncService syncService;
+    private final TruthLedgerSyncService truthLedgerSyncService;
 
     // Repositories for clearing data
     private final EngineRepository engineRepository;
@@ -107,6 +109,9 @@ public class DataSyncController {
         endpoints.put("POST /api/sync/reseed/engines", "Clear and reseed all engines");
         endpoints.put("POST /api/sync/reseed/launch-vehicles", "Clear and reseed launch vehicles");
         endpoints.put("POST /api/sync/reseed/all", "Clear and reseed all seed data");
+        endpoints.put("POST /api/sync/truth-ledger/engines", "Sync engines from Truth Ledger");
+        endpoints.put("POST /api/sync/truth-ledger/launch-vehicles", "Sync launch vehicles from Truth Ledger");
+        endpoints.put("POST /api/sync/truth-ledger/all", "Sync all entities from Truth Ledger");
 
         return ResponseEntity.ok(Map.of(
             "description", "Data synchronization and seeding management",
@@ -206,6 +211,50 @@ public class DataSyncController {
         results.put("status", "success");
         results.put("message", "Full reseed completed");
 
+        return ResponseEntity.ok(results);
+    }
+
+    // ==================== Truth Ledger Sync Endpoints ====================
+
+    /**
+     * Sync engines from Truth Ledger.
+     * This fetches entities and their verified facts from Truth Ledger
+     * and creates/updates corresponding engine entities in the database.
+     *
+     * POST /api/sync/truth-ledger/engines
+     */
+    @PostMapping("/truth-ledger/engines")
+    public ResponseEntity<Map<String, Object>> syncEnginesFromTruthLedger() {
+        log.info("Truth Ledger engine sync triggered");
+        Map<String, Object> results = truthLedgerSyncService.syncEngines();
+        return ResponseEntity.ok(results);
+    }
+
+    /**
+     * Sync launch vehicles from Truth Ledger.
+     * This fetches entities and their verified facts from Truth Ledger
+     * and creates/updates corresponding launch vehicle entities in the database.
+     *
+     * POST /api/sync/truth-ledger/launch-vehicles
+     */
+    @PostMapping("/truth-ledger/launch-vehicles")
+    public ResponseEntity<Map<String, Object>> syncLaunchVehiclesFromTruthLedger() {
+        log.info("Truth Ledger launch vehicle sync triggered");
+        Map<String, Object> results = truthLedgerSyncService.syncLaunchVehicles();
+        return ResponseEntity.ok(results);
+    }
+
+    /**
+     * Sync all entities from Truth Ledger.
+     * This fetches all supported entity types (engines, launch vehicles)
+     * from Truth Ledger and syncs them to the database.
+     *
+     * POST /api/sync/truth-ledger/all
+     */
+    @PostMapping("/truth-ledger/all")
+    public ResponseEntity<Map<String, Object>> syncAllFromTruthLedger() {
+        log.info("Full Truth Ledger sync triggered");
+        Map<String, Object> results = truthLedgerSyncService.syncAll();
         return ResponseEntity.ok(results);
     }
 }
