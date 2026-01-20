@@ -1,0 +1,12 @@
+{
+  "name": "rocket-engine-backend-scripts",
+  "version": "1.0.0",
+  "description": "Utility scripts for Rocket Engine Backend",
+  "type": "module",
+  "scripts": {
+    "reseed": "node scripts/reseed.mjs",
+    "reseed:engines": "node scripts/reseed.mjs --engines",
+    "reseed:vehicles": "node scripts/reseed.mjs --vehicles",
+    "reseed:local": "node scripts/reseed.mjs --local"
+  }
+}
