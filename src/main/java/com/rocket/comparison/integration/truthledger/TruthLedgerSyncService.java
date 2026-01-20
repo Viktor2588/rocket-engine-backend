@@ -453,7 +453,7 @@ public class TruthLedgerSyncService {
     private void linkEngineToCountry(Engine engine, String countryName) {
         countryRepository.findAll().stream()
             .filter(c -> c.getName().equalsIgnoreCase(countryName) ||
-                         c.getCode().equalsIgnoreCase(countryName))
+                         c.getIsoCode().equalsIgnoreCase(countryName))
             .findFirst()
             .ifPresent(engine::setCountry);
     }
@@ -461,7 +461,7 @@ public class TruthLedgerSyncService {
     private void linkVehicleToCountry(LaunchVehicle vehicle, String countryName) {
         countryRepository.findAll().stream()
             .filter(c -> c.getName().equalsIgnoreCase(countryName) ||
-                         c.getCode().equalsIgnoreCase(countryName))
+                         c.getIsoCode().equalsIgnoreCase(countryName))
             .findFirst()
             .ifPresent(vehicle::setCountry);
     }
