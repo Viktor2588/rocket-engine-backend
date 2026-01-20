@@ -1,13 +1,9 @@
 package com.rocket.comparison.integration.truthledger;
 
-import com.rocket.comparison.entity.Country;
-import com.rocket.comparison.entity.Engine;
-import com.rocket.comparison.entity.LaunchVehicle;
+import com.rocket.comparison.entity.*;
 import com.rocket.comparison.integration.truthledger.dto.EntityFactsResponseDto;
 import com.rocket.comparison.integration.truthledger.dto.EntityListResponseDto;
-import com.rocket.comparison.repository.CountryRepository;
-import com.rocket.comparison.repository.EngineRepository;
-import com.rocket.comparison.repository.LaunchVehicleRepository;
+import com.rocket.comparison.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -32,6 +28,8 @@ public class TruthLedgerSyncService {
     private final TruthLedgerClient truthLedgerClient;
     private final EngineRepository engineRepository;
     private final LaunchVehicleRepository launchVehicleRepository;
+    private final LaunchSiteRepository launchSiteRepository;
+    private final SpaceMissionRepository spaceMissionRepository;
     private final CountryRepository countryRepository;
 
     @Value("${truthledger.enabled:true}")
@@ -434,6 +432,320 @@ public class TruthLedgerSyncService {
     }
 
     /**
+     * Sync all launch sites from Truth Ledger
+     */
+    @Transactional
+    public Map<String, Object> syncLaunchSites() {
+        if (!enabled) {
+            log.warn("Truth Ledger sync is disabled");
+            return Map.of("status", "disabled", "message", "Truth Ledger sync is disabled");
+        }
+
+        log.info("Starting launch site sync from Truth Ledger");
+        int created = 0;
+        int updated = 0;
+        int errors = 0;
+        List<String> errorMessages = new ArrayList<>();
+
+        // Get default country for sites without country info
+        Country defaultCountry = countryRepository.findAll().stream()
+            .filter(c -> "USA".equalsIgnoreCase(c.getIsoCode()))
+            .findFirst()
+            .orElse(null);
+
+        try {
+            List<EntityListResponseDto.TruthLedgerEntityDto> entities =
+                truthLedgerClient.listAllEntitiesByType("launch_site");
+
+            log.info("Found {} launch site entities in Truth Ledger", entities.size());
+
+            for (EntityListResponseDto.TruthLedgerEntityDto entity : entities) {
+                try {
+                    boolean isNew = syncLaunchSite(entity, defaultCountry);
+                    if (isNew) {
+                        created++;
+                    } else {
+                        updated++;
+                    }
+                } catch (Exception e) {
+                    errors++;
+                    String msg = String.format("Failed to sync launch site '%s': %s",
+                        entity.getCanonicalName(), e.getMessage());
+                    errorMessages.add(msg);
+                    log.warn(msg, e);
+                }
+            }
+
+        } catch (Exception e) {
+            log.error("Failed to fetch entities from Truth Ledger", e);
+            return Map.of(
+                "status", "error",
+                "message", "Failed to connect to Truth Ledger: " + e.getMessage()
+            );
+        }
+
+        log.info("Launch site sync completed: {} created, {} updated, {} errors", created, updated, errors);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("status", errors == 0 ? "success" : "partial");
+        result.put("created", created);
+        result.put("updated", updated);
+        result.put("errors", errors);
+        result.put("total", created + updated);
+        if (!errorMessages.isEmpty()) {
+            result.put("errorMessages", errorMessages.subList(0, Math.min(10, errorMessages.size())));
+        }
+        return result;
+    }
+
+    /**
+     * Sync a single launch site from Truth Ledger entity
+     */
+    private boolean syncLaunchSite(EntityListResponseDto.TruthLedgerEntityDto entity, Country defaultCountry) {
+        String name = entity.getCanonicalName();
+
+        Optional<LaunchSite> existing = launchSiteRepository.findAll().stream()
+            .filter(s -> s.getName().equalsIgnoreCase(name))
+            .findFirst();
+
+        LaunchSite site;
+        boolean isNew = existing.isEmpty();
+
+        if (isNew) {
+            site = new LaunchSite();
+            site.setName(name);
+            site.setStatus(LaunchSiteStatus.OPERATIONAL); // Default status
+            site.setCountry(defaultCountry); // Will be updated from facts/metadata
+        } else {
+            site = existing.get();
+        }
+
+        // Try to get facts for this entity
+        if (entity.getId() != null) {
+            try {
+                Optional<EntityFactsResponseDto> factsResponse =
+                    truthLedgerClient.getEntityFacts(entity.getId(), truthThreshold);
+
+                if (factsResponse.isPresent()) {
+                    applyLaunchSiteFacts(site, factsResponse.get().getFacts());
+                }
+            } catch (Exception e) {
+                log.debug("Could not fetch facts for launch site {}: {}", name, e.getMessage());
+            }
+        }
+
+        // Apply metadata if available
+        if (entity.getMetadata() != null) {
+            applyLaunchSiteMetadata(site, entity.getMetadata());
+        }
+
+        launchSiteRepository.save(site);
+        log.debug("{} launch site: {}", isNew ? "Created" : "Updated", name);
+
+        return isNew;
+    }
+
+    /**
+     * Apply verified facts to a launch site entity
+     */
+    private void applyLaunchSiteFacts(LaunchSite site, List<EntityFactsResponseDto.FactDto> facts) {
+        if (facts == null) return;
+
+        for (EntityFactsResponseDto.FactDto fact : facts) {
+            String field = fact.getAttributePattern();
+            Object value = fact.getBestValue();
+
+            if (value == null) continue;
+
+            try {
+                switch (field) {
+                    case "launch_sites.latitude", "latitude" -> site.setLatitude(toDouble(value));
+                    case "launch_sites.longitude", "longitude" -> site.setLongitude(toDouble(value));
+                    case "launch_sites.country", "country" -> linkSiteToCountry(site, value.toString());
+                    case "launch_sites.operator", "operator" -> site.setOperator(value.toString());
+                    case "launch_sites.region", "region" -> site.setRegion(value.toString());
+                    case "launch_sites.total_launches", "total_launches" -> site.setTotalLaunches(toInt(value));
+                    case "launch_sites.established_year", "established_year" -> site.setEstablishedYear(toInt(value));
+                    case "launch_sites.description", "description" -> site.setDescription(value.toString());
+                }
+            } catch (Exception e) {
+                log.debug("Could not apply fact {} = {} to launch site: {}", field, value, e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Apply metadata from Truth Ledger entity to launch site
+     */
+    private void applyLaunchSiteMetadata(LaunchSite site, Map<String, Object> metadata) {
+        if (metadata.containsKey("country")) {
+            linkSiteToCountry(site, metadata.get("country").toString());
+        }
+        if (metadata.containsKey("operator")) {
+            site.setOperator(metadata.get("operator").toString());
+        }
+    }
+
+    /**
+     * Sync all space missions from Truth Ledger
+     */
+    @Transactional
+    public Map<String, Object> syncSpaceMissions() {
+        if (!enabled) {
+            log.warn("Truth Ledger sync is disabled");
+            return Map.of("status", "disabled", "message", "Truth Ledger sync is disabled");
+        }
+
+        log.info("Starting space mission sync from Truth Ledger");
+        int created = 0;
+        int updated = 0;
+        int errors = 0;
+        List<String> errorMessages = new ArrayList<>();
+
+        // Get default country for missions without country info
+        Country defaultCountry = countryRepository.findAll().stream()
+            .filter(c -> "USA".equalsIgnoreCase(c.getIsoCode()))
+            .findFirst()
+            .orElse(null);
+
+        try {
+            List<EntityListResponseDto.TruthLedgerEntityDto> entities =
+                truthLedgerClient.listAllEntitiesByType("space_mission");
+
+            log.info("Found {} space mission entities in Truth Ledger", entities.size());
+
+            for (EntityListResponseDto.TruthLedgerEntityDto entity : entities) {
+                try {
+                    boolean isNew = syncSpaceMission(entity, defaultCountry);
+                    if (isNew) {
+                        created++;
+                    } else {
+                        updated++;
+                    }
+                } catch (Exception e) {
+                    errors++;
+                    String msg = String.format("Failed to sync space mission '%s': %s",
+                        entity.getCanonicalName(), e.getMessage());
+                    errorMessages.add(msg);
+                    log.warn(msg, e);
+                }
+            }
+
+        } catch (Exception e) {
+            log.error("Failed to fetch entities from Truth Ledger", e);
+            return Map.of(
+                "status", "error",
+                "message", "Failed to connect to Truth Ledger: " + e.getMessage()
+            );
+        }
+
+        log.info("Space mission sync completed: {} created, {} updated, {} errors", created, updated, errors);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("status", errors == 0 ? "success" : "partial");
+        result.put("created", created);
+        result.put("updated", updated);
+        result.put("errors", errors);
+        result.put("total", created + updated);
+        if (!errorMessages.isEmpty()) {
+            result.put("errorMessages", errorMessages.subList(0, Math.min(10, errorMessages.size())));
+        }
+        return result;
+    }
+
+    /**
+     * Sync a single space mission from Truth Ledger entity
+     */
+    private boolean syncSpaceMission(EntityListResponseDto.TruthLedgerEntityDto entity, Country defaultCountry) {
+        String name = entity.getCanonicalName();
+
+        Optional<SpaceMission> existing = spaceMissionRepository.findAll().stream()
+            .filter(m -> m.getName().equalsIgnoreCase(name))
+            .findFirst();
+
+        SpaceMission mission;
+        boolean isNew = existing.isEmpty();
+
+        if (isNew) {
+            mission = new SpaceMission();
+            mission.setName(name);
+            mission.setStatus(MissionStatus.COMPLETED); // Default status
+            mission.setMissionType(MissionType.SATELLITE_DEPLOYMENT); // Default type
+            mission.setCountry(defaultCountry); // Will be updated from facts/metadata
+        } else {
+            mission = existing.get();
+        }
+
+        // Try to get facts for this entity
+        if (entity.getId() != null) {
+            try {
+                Optional<EntityFactsResponseDto> factsResponse =
+                    truthLedgerClient.getEntityFacts(entity.getId(), truthThreshold);
+
+                if (factsResponse.isPresent()) {
+                    applySpaceMissionFacts(mission, factsResponse.get().getFacts());
+                }
+            } catch (Exception e) {
+                log.debug("Could not fetch facts for space mission {}: {}", name, e.getMessage());
+            }
+        }
+
+        // Apply metadata if available
+        if (entity.getMetadata() != null) {
+            applySpaceMissionMetadata(mission, entity.getMetadata());
+        }
+
+        spaceMissionRepository.save(mission);
+        log.debug("{} space mission: {}", isNew ? "Created" : "Updated", name);
+
+        return isNew;
+    }
+
+    /**
+     * Apply verified facts to a space mission entity
+     */
+    private void applySpaceMissionFacts(SpaceMission mission, List<EntityFactsResponseDto.FactDto> facts) {
+        if (facts == null) return;
+
+        for (EntityFactsResponseDto.FactDto fact : facts) {
+            String field = fact.getAttributePattern();
+            Object value = fact.getBestValue();
+
+            if (value == null) continue;
+
+            try {
+                switch (field) {
+                    case "space_missions.country", "country" -> linkMissionToCountry(mission, value.toString());
+                    case "space_missions.operator", "operator" -> mission.setOperator(value.toString());
+                    case "space_missions.launch_vehicle", "launch_vehicle" -> mission.setLaunchVehicleName(value.toString());
+                    case "space_missions.launch_site", "launch_site" -> mission.setLaunchSite(value.toString());
+                    case "space_missions.launch_year", "launch_year" -> mission.setLaunchYear(toInt(value));
+                    case "space_missions.description", "description" -> mission.setDescription(value.toString());
+                    case "space_missions.objectives", "objectives" -> mission.setObjectives(value.toString());
+                    case "space_missions.outcomes", "outcomes" -> mission.setOutcomes(value.toString());
+                }
+            } catch (Exception e) {
+                log.debug("Could not apply fact {} = {} to space mission: {}", field, value, e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Apply metadata from Truth Ledger entity to space mission
+     */
+    private void applySpaceMissionMetadata(SpaceMission mission, Map<String, Object> metadata) {
+        if (metadata.containsKey("country")) {
+            linkMissionToCountry(mission, metadata.get("country").toString());
+        }
+        if (metadata.containsKey("operator")) {
+            mission.setOperator(metadata.get("operator").toString());
+        }
+        if (metadata.containsKey("launchVehicle")) {
+            mission.setLaunchVehicleName(metadata.get("launchVehicle").toString());
+        }
+    }
+
+    /**
      * Sync all entity types from Truth Ledger
      */
     @Transactional
@@ -442,6 +754,8 @@ public class TruthLedgerSyncService {
 
         results.put("engines", syncEngines());
         results.put("launchVehicles", syncLaunchVehicles());
+        results.put("launchSites", syncLaunchSites());
+        results.put("spaceMissions", syncSpaceMissions());
         results.put("status", "success");
         results.put("message", "Full sync from Truth Ledger completed");
 
@@ -464,6 +778,22 @@ public class TruthLedgerSyncService {
                          c.getIsoCode().equalsIgnoreCase(countryName))
             .findFirst()
             .ifPresent(vehicle::setCountry);
+    }
+
+    private void linkSiteToCountry(LaunchSite site, String countryName) {
+        countryRepository.findAll().stream()
+            .filter(c -> c.getName().equalsIgnoreCase(countryName) ||
+                         c.getIsoCode().equalsIgnoreCase(countryName))
+            .findFirst()
+            .ifPresent(site::setCountry);
+    }
+
+    private void linkMissionToCountry(SpaceMission mission, String countryName) {
+        countryRepository.findAll().stream()
+            .filter(c -> c.getName().equalsIgnoreCase(countryName) ||
+                         c.getIsoCode().equalsIgnoreCase(countryName))
+            .findFirst()
+            .ifPresent(mission::setCountry);
     }
 
     private Double toDouble(Object value) {

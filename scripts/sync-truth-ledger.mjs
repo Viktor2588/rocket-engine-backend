@@ -21,6 +21,8 @@ async function syncFromTruthLedger() {
   const useLocal = args.includes('--local');
   const enginesOnly = args.includes('--engines');
   const vehiclesOnly = args.includes('--vehicles');
+  const sitesOnly = args.includes('--sites');
+  const missionsOnly = args.includes('--missions');
 
   const baseUrl = useLocal ? LOCAL_URL : PROD_URL;
 
@@ -40,6 +42,12 @@ async function syncFromTruthLedger() {
     } else if (vehiclesOnly) {
       endpoint = '/api/sync/truth-ledger/launch-vehicles';
       description = 'Syncing launch vehicles from Truth Ledger...';
+    } else if (sitesOnly) {
+      endpoint = '/api/sync/truth-ledger/launch-sites';
+      description = 'Syncing launch sites from Truth Ledger...';
+    } else if (missionsOnly) {
+      endpoint = '/api/sync/truth-ledger/missions';
+      description = 'Syncing space missions from Truth Ledger...';
     } else {
       endpoint = '/api/sync/truth-ledger/all';
       description = 'Syncing all entities from Truth Ledger...';
@@ -80,6 +88,20 @@ async function syncFromTruthLedger() {
       console.log(`   🚀 Vehicles: ${v.created || 0} created, ${v.updated || 0} updated (total: ${v.total || 0})`);
       if (v.errors > 0) {
         console.log(`      ⚠️  ${v.errors} errors`);
+      }
+    }
+    if (result.launchSites) {
+      const s = result.launchSites;
+      console.log(`   📍 Sites: ${s.created || 0} created, ${s.updated || 0} updated (total: ${s.total || 0})`);
+      if (s.errors > 0) {
+        console.log(`      ⚠️  ${s.errors} errors`);
+      }
+    }
+    if (result.spaceMissions) {
+      const m = result.spaceMissions;
+      console.log(`   🛸 Missions: ${m.created || 0} created, ${m.updated || 0} updated (total: ${m.total || 0})`);
+      if (m.errors > 0) {
+        console.log(`      ⚠️  ${m.errors} errors`);
       }
     }
     if (result.created !== undefined) {

@@ -11,6 +11,8 @@
     "sync": "node scripts/sync-truth-ledger.mjs",
     "sync:engines": "node scripts/sync-truth-ledger.mjs --engines",
     "sync:vehicles": "node scripts/sync-truth-ledger.mjs --vehicles",
+    "sync:sites": "node scripts/sync-truth-ledger.mjs --sites",
+    "sync:missions": "node scripts/sync-truth-ledger.mjs --missions",
     "sync:local": "node scripts/sync-truth-ledger.mjs --local"
   }
 }

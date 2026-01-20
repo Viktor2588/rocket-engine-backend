@@ -111,6 +111,8 @@ public class DataSyncController {
         endpoints.put("POST /api/sync/reseed/all", "Clear and reseed all seed data");
         endpoints.put("POST /api/sync/truth-ledger/engines", "Sync engines from Truth Ledger");
         endpoints.put("POST /api/sync/truth-ledger/launch-vehicles", "Sync launch vehicles from Truth Ledger");
+        endpoints.put("POST /api/sync/truth-ledger/launch-sites", "Sync launch sites from Truth Ledger");
+        endpoints.put("POST /api/sync/truth-ledger/missions", "Sync space missions from Truth Ledger");
         endpoints.put("POST /api/sync/truth-ledger/all", "Sync all entities from Truth Ledger");
 
         return ResponseEntity.ok(Map.of(
@@ -241,6 +243,34 @@ public class DataSyncController {
     public ResponseEntity<Map<String, Object>> syncLaunchVehiclesFromTruthLedger() {
         log.info("Truth Ledger launch vehicle sync triggered");
         Map<String, Object> results = truthLedgerSyncService.syncLaunchVehicles();
+        return ResponseEntity.ok(results);
+    }
+
+    /**
+     * Sync launch sites from Truth Ledger.
+     * This fetches entities and their verified facts from Truth Ledger
+     * and creates/updates corresponding launch site entities in the database.
+     *
+     * POST /api/sync/truth-ledger/launch-sites
+     */
+    @PostMapping("/truth-ledger/launch-sites")
+    public ResponseEntity<Map<String, Object>> syncLaunchSitesFromTruthLedger() {
+        log.info("Truth Ledger launch site sync triggered");
+        Map<String, Object> results = truthLedgerSyncService.syncLaunchSites();
+        return ResponseEntity.ok(results);
+    }
+
+    /**
+     * Sync space missions from Truth Ledger.
+     * This fetches entities and their verified facts from Truth Ledger
+     * and creates/updates corresponding space mission entities in the database.
+     *
+     * POST /api/sync/truth-ledger/missions
+     */
+    @PostMapping("/truth-ledger/missions")
+    public ResponseEntity<Map<String, Object>> syncSpaceMissionsFromTruthLedger() {
+        log.info("Truth Ledger space mission sync triggered");
+        Map<String, Object> results = truthLedgerSyncService.syncSpaceMissions();
         return ResponseEntity.ok(results);
     }
 
